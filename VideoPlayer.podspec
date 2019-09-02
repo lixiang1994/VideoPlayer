@@ -32,10 +32,10 @@ sub.source_files  = 'Sources/AV/*.swift'
 sub.weak_framework = 'AVFoundation'
 end
 
-s.subspec 'PLPlayer' do |sub|
-sub.dependency 'VideoPlayer/Core'
-sub.source_files  = 'Sources/PL/*.swift'
-sub.dependency 'PLPlayerKit', '3.4.2'
-end
+#s.subspec 'PLPlayer' do |sub|
+#sub.dependency 'VideoPlayer/Core'
+#sub.source_files  = 'Sources/PL/*.swift'
+#sub.dependency 'PLPlayerKit', '3.4.2'
+#end
 
 end
