@@ -1,3 +1,12 @@
+//
+//  VideoPlayerable.swift
+//  ┌─┐      ┌───────┐ ┌───────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ │      │ └─────┐ │ └─────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ └─────┐│ └─────┐ │ └─────┐
+//  └───────┘└───────┘ └───────┘
+//
 import Foundation
 
 public protocol VideoPlayerable: NSObjectProtocol {

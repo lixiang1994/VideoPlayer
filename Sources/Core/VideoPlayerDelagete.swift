@@ -1,3 +1,12 @@
+//
+//  VideoPlayerDelagete.swift
+//  ┌─┐      ┌───────┐ ┌───────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ │      │ └─────┐ │ └─────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ └─────┐│ └─────┐ │ └─────┐
+//  └───────┘└───────┘ └───────┘
+//
 import Foundation
 
 public protocol VideoPlayerDelagete: AnyObject {

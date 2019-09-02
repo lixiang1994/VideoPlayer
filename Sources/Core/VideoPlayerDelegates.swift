@@ -1,3 +1,12 @@
+//
+//  VideoPlayerDelagetes.swift
+//  ┌─┐      ┌───────┐ ┌───────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ │      │ └─────┐ │ └─────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ └─────┐│ └─────┐ │ └─────┐
+//  └───────┘└───────┘ └───────┘
+//
 import Foundation
 
 protocol PlayerDelagetes: NSObjectProtocol {

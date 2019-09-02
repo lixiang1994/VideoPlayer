@@ -1,11 +1,12 @@
 //
 //  VideoPlayer.h
-//  VideoPlayer
+//  ┌─┐      ┌───────┐ ┌───────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ │      │ └─────┐ │ └─────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ └─────┐│ └─────┐ │ └─────┐
+//  └───────┘└───────┘ └───────┘
 //
-//  Created by lee on 2019/8/28.
-//  Copyright © 2019 lee. All rights reserved.
-//
-
 #import <UIKit/UIKit.h>
 
 //! Project version number for SwiftRouter.

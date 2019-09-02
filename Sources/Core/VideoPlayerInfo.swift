@@ -1,3 +1,12 @@
+//
+//  VideoPlayerInfo.swift
+//  ┌─┐      ┌───────┐ ┌───────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ │      │ └─────┐ │ └─────┐
+//  │ │      │ ┌─────┘ │ ┌─────┘
+//  │ └─────┐│ └─────┐ │ └─────┐
+//  └───────┘└───────┘ └───────┘
+//
 import MediaPlayer.MPNowPlayingInfoCenter
 import MediaPlayer.MPRemoteCommandCenter
 
