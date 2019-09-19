@@ -207,7 +207,6 @@ extension VideoPlayerControlView {
     @objc private func sliderTouchEnd(_ sender: UISlider) {
         isDraging = false
         delegate?.controlSeek(time: Double(sender.value)) { }
-        delegate?.controlSeek(time: Double(sender.value) + 5) { }
         autoHide()
     }
     
@@ -259,7 +258,7 @@ extension VideoPlayerControlView {
         let item = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
             
-            self.hide()
+            self.isShow = false
         }
         autoHideTask = item
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: item)
