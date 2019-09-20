@@ -94,11 +94,6 @@ class AVVideoPlayer: NSObject {
     private var itemLoadedTimeRangesObservation: NSKeyValueObservation?
     private var itemPlaybackLikelyToKeepUpObservation: NSKeyValueObservation?
     
-    private let kvo_item_status = "status"
-    private let kvo_item_duration = "duration"
-    private let kvo_item_loadedTimeRanges = "loadedTimeRanges"
-    private let kvo_item_playbackLikelyToKeepUp = "playbackLikelyToKeepUp"
-    
     override init() {
         super.init()
         
