@@ -52,6 +52,11 @@ class AVVideoPlayer: NSObject {
             }
         }
     }
+    
+    /// 播放速率 0.5 - 2.0
+    var rate: Double = 1.0 {
+        didSet { player.rate = Float(rate) }
+    }
     /// 音量 0 - 1
     var volume: Double = 1.0 {
         didSet { player.volume = Float(volume)}
@@ -102,6 +107,7 @@ class AVVideoPlayer: NSObject {
     }
     
     private func setup() {
+        rate = 1.0
         volume = 1.0
         isMuted = false
         isLoop = false
@@ -363,6 +369,7 @@ extension AVVideoPlayer: VideoPlayerable {
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         player = AVPlayer(playerItem: item)
         player.actionAtItemEnd = .pause
+        player.rate = Float(rate)
         player.volume = Float(volume)
         player.isMuted = isMuted
         
@@ -482,10 +489,6 @@ extension AVVideoPlayer: VideoPlayerable {
         guard let item = player.currentItem else { return nil }
         let time = CMTimeGetSeconds(item.duration)
         return time.isNaN ? nil : time
-    }
-    
-    var currentRate: Double {
-        return Double(player.rate)
     }
     
     var view: VideoPlayerView {

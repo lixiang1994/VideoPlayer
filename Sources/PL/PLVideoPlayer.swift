@@ -51,6 +51,11 @@ class PLVideoPlayer: NSObject {
             }
         }
     }
+    
+    /// 播放速率 0.5 - 2.0
+    var rate: Double = 1.0 {
+        didSet { player?.playSpeed = rate }
+    }
     /// 音量 0 - 1
     var volume: Double = 1.0 {
         didSet { player?.setVolume(Float(volume)) }
@@ -105,6 +110,7 @@ class PLVideoPlayer: NSObject {
     }
     
     private func setup() {
+        rate = 1.0
         volume = 1.0
         isMuted = false
         isLoop = false
@@ -357,6 +363,7 @@ extension PLVideoPlayer: VideoPlayerable {
         player.delegate = self
         player.isBackgroundPlayEnable = true
         player.loopPlay = isLoop
+        player.playSpeed = rate
         player.setVolume(Float(volume))
         player.isMute = isMuted
         self.player = player
@@ -441,10 +448,6 @@ extension PLVideoPlayer: VideoPlayerable {
         
         let time = duration.seconds
         return time.isNaN ? nil : time
-    }
-    
-    var currentRate: Double {
-        return player?.playSpeed ?? 0.0
     }
     
     var view: VideoPlayerView {

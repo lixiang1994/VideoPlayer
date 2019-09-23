@@ -33,12 +33,12 @@ public protocol VideoPlayerable: NSObjectProtocol {
     var currentTime: TimeInterval? { get }
     /// 视频总时长
     var totalTime: TimeInterval? { get }
-    /// 播放速率
-    var currentRate: Double { get }
     /// VideoPlayer 的画面输出到该 UIView 对象
     var view: VideoPlayerView { get }
     
-    /// 静音
+    /// 播放速率
+    var rate: Double { get set }
+    /// 是否静音
     var isMuted: Bool { get set }
     /// 音量控制
     var volume: Double { get set }
