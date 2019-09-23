@@ -203,6 +203,7 @@ extension AVVideoPlayer {
                 case .readyToPlay:
                     if self.isAutoPlay {
                         self.player.play()
+                        self.player.rate = Float(self.rate)
                         self.userPaused = false
                         self.state = .playing
                         
@@ -367,6 +368,10 @@ extension AVVideoPlayer: VideoPlayerable {
         currentUrl = url
         let item = AVPlayerItem(url: url)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
+        // 预缓冲时长 默认60秒
+        item.preferredForwardBufferDuration = 60.0
+        // 解决0.5倍数播放回音问题
+        item.audioTimePitchAlgorithm = .timeDomain
         player = AVPlayer(playerItem: item)
         player.actionAtItemEnd = .pause
         player.rate = Float(rate)
@@ -430,6 +435,7 @@ extension AVVideoPlayer: VideoPlayerable {
         guard ready else { return }
         
         player.play()
+        player.rate = Float(rate)
         userPaused = false
         state = .playing
     }
@@ -469,7 +475,10 @@ extension AVVideoPlayer: VideoPlayerable {
         item.seek(to: changeTime, completionHandler: { [weak self] (finish) in
             guard let self = self else { return }
             
-            if state == .playing { self.player.play() }
+            if state == .playing {
+                self.player.play()
+                self.player.rate = Float(self.rate)
+            }
             
             // 恢复监听
             self.addObserver()
@@ -501,3 +510,9 @@ extension AVVideoPlayer: PlayerDelagetes  {
     typealias Element = VideoPlayerDelagete
 }
 
+fileprivate extension AVPlayerItem {
+    
+    func setAudioTrack(_ isEnabled: Bool) {
+        tracks.filter { $0.assetTrack?.mediaType == .some(.audio) }.forEach { $0.isEnabled = isEnabled }
+    }
+}
