@@ -55,7 +55,10 @@ class AVVideoPlayer: NSObject {
     
     /// 播放速率 0.5 - 2.0
     var rate: Double = 1.0 {
-        didSet { player.rate = Float(rate) }
+        didSet {
+            guard state == .playing else { return }
+            player.rate = Float(rate)
+        }
     }
     /// 音量 0 - 1
     var volume: Double = 1.0 {
