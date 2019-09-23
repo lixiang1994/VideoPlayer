@@ -81,7 +81,7 @@ public class VideoPlayerInfo: VideoPlayerDelagete {
         guard let player = player else { return }
         
         info[MPMediaItemPropertyPlaybackDuration] = player.totalTime ?? 0
-        info[MPNowPlayingInfoPropertyPlaybackRate] = player.currentRate
+        info[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
         info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player.currentTime ?? 0
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
