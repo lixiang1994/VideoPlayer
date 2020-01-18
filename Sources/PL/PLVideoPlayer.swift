@@ -199,16 +199,17 @@ extension PLVideoPlayer {
 extension PLVideoPlayer {
     
     /// 清理
-    private func clear() {
+    private func clear(_ isStop: Bool) {
         ready = false
         player?.stop()
         playingInfo = nil
-        VideoPlayer.removeAudioSession()
+        
+        if isStop { VideoPlayer.removeAudioSession() }
     }
     
     /// 错误
     private func error() {
-        clear()
+        clear(true)
         loading = false
         state = .error
     }
@@ -351,7 +352,7 @@ extension PLVideoPlayer: VideoPlayerable {
     @discardableResult
     func prepare(url: URL) -> VideoPlayerView {
 
-        clear()
+        clear(false)
         
         guard
             let player = PLPlayer(url: url, option: PLPlayerOption.default()),
@@ -410,7 +411,7 @@ extension PLVideoPlayer: VideoPlayerable {
     }
     
     func stop() {
-        clear()
+        clear(true)
         loading = false
         playTimer.fireDate = .distantFuture
         state = .stopped

@@ -5,6 +5,6 @@ inhibit_all_warnings!
 target 'VideoPlayer' do
   use_frameworks!
   
-  pod 'PLPlayerKit'                          , '3.4.2'
+  pod 'PLPlayerKit'                          , '3.4.3'
   
 end

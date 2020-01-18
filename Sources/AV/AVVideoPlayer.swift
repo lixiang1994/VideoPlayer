@@ -153,13 +153,13 @@ extension AVVideoPlayer {
     
     /// 错误
     private func error() {
-        clear()
+        clear(true)
         resetLoading()
         state = .error
     }
     
     /// 清理
-    private func clear() {
+    private func clear(_ isStop: Bool) {
         guard let item = player.currentItem else { return }
         
         ready = false
@@ -174,7 +174,7 @@ extension AVVideoPlayer {
         playingInfo = nil
         currentUrl = nil
         
-        VideoPlayer.removeAudioSession()
+        if isStop { VideoPlayer.removeAudioSession() }
     }
     
     private func addObserver() {
@@ -366,7 +366,7 @@ extension AVVideoPlayer: VideoPlayerable {
     @discardableResult
     func prepare(url: URL) -> VideoPlayerView {
         
-        clear()
+        clear(false)
         
         currentUrl = url
         let item = AVPlayerItem(url: url)
@@ -452,7 +452,7 @@ extension AVVideoPlayer: VideoPlayerable {
     }
     
     func stop() {
-        clear()
+        clear(true)
         resetLoading()
         state = .stopped
     }

@@ -212,6 +212,7 @@ extension VideoPlayerControlView {
     
     @objc private func sliderTouchCancel(_ sender: UISlider) {
         isDraging = false
+        delegate?.controlSeek(time: Double(sender.value)) { }
         autoHide()
     }
     

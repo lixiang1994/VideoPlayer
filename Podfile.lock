@@ -1,18 +1,18 @@
 PODS:
-  - PLPlayerKit (3.4.2):
-    - PLPlayerKit/iphoneos (= 3.4.2)
-  - PLPlayerKit/iphoneos (3.4.2)
+  - PLPlayerKit (3.4.3):
+    - PLPlayerKit/iphoneos (= 3.4.3)
+  - PLPlayerKit/iphoneos (3.4.3)
 
 DEPENDENCIES:
-  - PLPlayerKit (= 3.4.2)
+  - PLPlayerKit (= 3.4.3)
 
 SPEC REPOS:
-  https://github.com/cocoapods/specs.git:
+  trunk:
     - PLPlayerKit
 
 SPEC CHECKSUMS:
-  PLPlayerKit: 7aff4f2860cd5b7c001cf2f3d8ab5d9a561e0d9c
+  PLPlayerKit: a44734dc78c1f8f9fb22c537fa1916612fa46b06
 
-PODFILE CHECKSUM: 956db8441abae5dd4f6f88e83f9da5582cb78048
+PODFILE CHECKSUM: 0a9c16f465902969d17aeed626557354f640e6b1
 
-COCOAPODS: 1.7.5
+COCOAPODS: 1.8.4
