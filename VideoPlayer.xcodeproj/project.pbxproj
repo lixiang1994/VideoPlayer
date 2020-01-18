@@ -3,11 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		46231B907328DF24950152AB /* Pods_VideoPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AF41860838A4FC97A843309 /* Pods_VideoPlayer.framework */; };
+		46231B907328DF24950152AB /* Pods_VideoPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AF41860838A4FC97A843309 /* Pods_VideoPlayer.framework */; platformFilter = ios; };
 		9B39F4332316842400505AD0 /* VideoPlayerable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B39F42F2316842300505AD0 /* VideoPlayerable.swift */; };
 		9B39F4342316842400505AD0 /* VideoPlayerDelagete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B39F4302316842300505AD0 /* VideoPlayerDelagete.swift */; };
 		9B39F4352316842400505AD0 /* VideoPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B39F4312316842300505AD0 /* VideoPlayer.swift */; };
