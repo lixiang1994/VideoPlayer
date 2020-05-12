@@ -29,9 +29,9 @@ public enum VideoPlayer {
 
 public extension VideoPlayer {
     
-    static func setupAudioSession() {
+    static func setupAudioSession(in queue: DispatchQueue) {
         UIApplication.shared.beginReceivingRemoteControlEvents()
-        DispatchQueue.global().async {
+        queue.async {
             do {
                 let session = AVAudioSession.sharedInstance()
                 try session.setCategory(.playback, mode: .default)
@@ -42,9 +42,9 @@ public extension VideoPlayer {
         }
     }
     
-    static func removeAudioSession() {
+    static func removeAudioSession(in queue: DispatchQueue) {
         UIApplication.shared.endReceivingRemoteControlEvents()
-        DispatchQueue.global().async {
+        queue.async {
             do {
                 let session = AVAudioSession.sharedInstance()
                 try session.setCategory(.playback, mode: .moviePlayback)

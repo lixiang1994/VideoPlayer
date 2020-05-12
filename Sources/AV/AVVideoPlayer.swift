@@ -85,6 +85,8 @@ class AVVideoPlayer: NSObject {
             add(delegate: playingInfo)
         }
     }
+    /// 音频会话队列
+    var audioSessionQueue: DispatchQueue = .global()
     
     var delegates: [DelegateBridge<AnyObject>] = []
     private lazy var player = AVPlayer()
@@ -174,7 +176,7 @@ extension AVVideoPlayer {
         playingInfo = nil
         currentUrl = nil
         
-        if isStop { VideoPlayer.removeAudioSession() }
+        if isStop { VideoPlayer.removeAudioSession(in: audioSessionQueue) }
     }
     
     private func addObserver() {
@@ -429,7 +431,7 @@ extension AVVideoPlayer: VideoPlayerable {
         playerView.contentMode = .scaleAspectFit
         
         // 设置音频会话
-        VideoPlayer.setupAudioSession()
+        VideoPlayer.setupAudioSession(in: audioSessionQueue)
         
         return playerView
     }

@@ -85,6 +85,8 @@ class PLVideoPlayer: NSObject {
             add(delegate: playingInfo)
         }
     }
+    /// 音频会话队列
+    var audioSessionQueue: DispatchQueue = .global()
     
     var delegates: [DelegateBridge<AnyObject>] = []
     private lazy var playTimer: Timer = {
@@ -204,7 +206,7 @@ extension PLVideoPlayer {
         player?.stop()
         playingInfo = nil
         
-        if isStop { VideoPlayer.removeAudioSession() }
+        if isStop { VideoPlayer.removeAudioSession(in: audioSessionQueue) }
     }
     
     /// 错误
@@ -386,7 +388,7 @@ extension PLVideoPlayer: VideoPlayerable {
         loading = true
         
         // 设置音频会话
-        VideoPlayer.setupAudioSession()
+        VideoPlayer.setupAudioSession(in: audioSessionQueue)
         
         player.play()
         
