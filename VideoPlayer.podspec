@@ -29,7 +29,6 @@ end
 s.subspec 'AVPlayer' do |sub|
 sub.dependency 'VideoPlayer/Core'
 sub.source_files  = 'Sources/AV/*.swift'
-sub.weak_framework = 'AVFoundation'
 end
 
 s.subspec 'PLPlayer' do |sub|
