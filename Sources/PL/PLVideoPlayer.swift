@@ -8,6 +8,9 @@
 //  └───────┘└───────┘ └───────┘
 //
 import UIKit
+
+#if !targetEnvironment(simulator)
+
 import PLPlayerKit
 
 public extension VideoPlayer {
@@ -457,3 +460,5 @@ extension PLVideoPlayer: VideoPlayerable {
         return playerView
     }
 }
+
+#endif

@@ -36,7 +36,11 @@ class SimplePlayerViewController: UIViewController {
             player = VideoPlayer.av.instance()
             
         default:
+            #if targetEnvironment(simulator)
+            player = VideoPlayer.av.instance()
+            #else
             player = VideoPlayer.pl.instance()
+            #endif
         }
         // 简单设置
         player.isLoop = false
