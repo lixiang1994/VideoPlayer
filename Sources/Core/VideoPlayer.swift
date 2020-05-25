@@ -29,7 +29,7 @@ public enum VideoPlayer {
 
 public extension VideoPlayer {
     
-    static func setupAudioSession(in queue: DispatchQueue) {
+    static func setupAudioSession(in queue: DispatchQueue, with completion: @escaping (() -> Void) = {}) {
         UIApplication.shared.beginReceivingRemoteControlEvents()
         queue.async {
             do {
@@ -39,19 +39,23 @@ public extension VideoPlayer {
             } catch {
                 print("音频会话创建失败")
             }
+            
+            DispatchQueue.main.async(execute: completion)
         }
     }
     
-    static func removeAudioSession(in queue: DispatchQueue) {
+    static func removeAudioSession(in queue: DispatchQueue, with completion: @escaping (() -> Void) = {}) {
         UIApplication.shared.endReceivingRemoteControlEvents()
         queue.async {
             do {
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playback, mode: .moviePlayback)
+                try session.setCategory(.playback, mode: .default)
                 try session.setActive(false, options: [.notifyOthersOnDeactivation])
             } catch {
                 print("音频会话释放失败")
             }
+            
+            DispatchQueue.main.async(execute: completion)
         }
     }
 }
@@ -64,7 +68,7 @@ extension VideoPlayer {
         
         private var generator: Generator
         
-        private(set) lazy var shared = generator()
+        public private(set) lazy var shared = generator()
         
         init(_ generator: @escaping Generator) {
             self.generator = generator

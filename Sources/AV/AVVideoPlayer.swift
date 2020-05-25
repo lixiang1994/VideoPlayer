@@ -224,6 +224,7 @@ extension AVVideoPlayer {
                     // 异常
                     print(item.error?.localizedDescription ?? "无法获取错误信息")
                     self.error()
+                    
                 @unknown default:
                     break
                 }
