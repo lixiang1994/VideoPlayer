@@ -167,6 +167,10 @@ extension AVVideoPlayer {
         ready = false
         player.pause()
         
+        // 取消相关
+        item.cancelPendingSeeks()
+        item.asset.cancelLoading()
+        
         // 移除监听
         removeObserver()
         removeObserver(item: item)
@@ -461,16 +465,15 @@ extension AVVideoPlayer: VideoPlayerable {
     }
     
     func seek(to time: TimeInterval, completion: @escaping (() -> Void)) {
-        guard ready else { return }
         guard
+            ready,
             let item = player.currentItem,
             player.status == .readyToPlay,
             !isSeeking else {
-            completion()
             return
         }
         
-        let state = self.state
+        let player = self.player
         if state == .playing { player.pause() }
         
         // 暂时移除监听
@@ -478,20 +481,21 @@ extension AVVideoPlayer: VideoPlayerable {
         isSeeking = true
         
         let changeTime = CMTimeMakeWithSeconds(time, preferredTimescale: 1)
-        item.seek(to: changeTime, completionHandler: { [weak self] (finish) in
+        item.seek(to: changeTime) { [weak self] (finished) in
             guard let self = self else { return }
+            guard finished, player == self.player else { return }
             
-            if state == .playing {
-                self.player.play()
-                self.player.rate = Float(self.rate)
+            if self.state == .playing {
+                player.play()
+                player.rate = Float(self.rate)
             }
             
             // 恢复监听
             self.addObserver()
             self.isSeeking = false
-            self.delegate{ $0.videoPlayerSeekFinish(self) }
+            self.delegate { $0.videoPlayerSeekFinish(self) }
             completion()
-        })
+        }
     }
     
     var currentTime: TimeInterval? {
