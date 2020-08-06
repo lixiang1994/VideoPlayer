@@ -35,9 +35,8 @@ extension PlayerDelagetes {
     func delegate(_ operat: (Element) -> Void) {
         delegates = delegates.filter({ $0.object != nil })
         for delegate in delegates {
-            guard let object = delegate.object else { continue }
-            guard let o = object as? Element else { continue }
-            operat(o)
+            guard let object = delegate.object as? Element else { continue }
+            operat(object)
         }
     }
 }
