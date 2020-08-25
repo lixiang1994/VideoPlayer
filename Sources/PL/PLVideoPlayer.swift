@@ -92,15 +92,7 @@ class PLVideoPlayer: NSObject {
     var audioSessionQueue: DispatchQueue = .global()
     
     var delegates: [DelegateBridge<AnyObject>] = []
-    private lazy var playTimer: Timer = {
-        let timer = Timer(timeInterval: 0.1,
-                          target: WeakObject(self),
-                          selector: #selector(timerAction),
-                          userInfo: nil,
-                          repeats: true)
-        RunLoop.main.add(timer, forMode: .common)
-        return timer
-    } ()
+    private var playTimer: Timer?
     private var player: PLPlayer?
     private var playerView = VideoPlayerView()
     private var userPaused: Bool = false
@@ -120,6 +112,15 @@ class PLVideoPlayer: NSObject {
         isMuted = false
         isLoop = false
         isBackground = false
+        
+        let timer = Timer(timeInterval: 0.1,
+                          target: WeakObject(self),
+                          selector: #selector(timerAction),
+                          userInfo: nil,
+                          repeats: true)
+        RunLoop.main.add(timer, forMode: .common)
+        timer.fireDate = .distantFuture
+        playTimer = timer
     }
     
     private func setupNotification() {
@@ -144,7 +145,7 @@ class PLVideoPlayer: NSObject {
     }
     
     deinit {
-        playTimer.invalidate()
+        playTimer?.invalidate()
     }
 }
 
@@ -261,7 +262,7 @@ extension PLVideoPlayer: PLPlayerDelegate {
             
             if !ready {
                 if isAutoPlay {
-                    self.playTimer.fireDate = Date()
+                    self.playTimer?.fireDate = Date()
                     self.userPaused = false
                     self.state = .playing
                     player.play()
@@ -335,7 +336,7 @@ extension PLVideoPlayer: PLPlayerDelegate {
         guard let _ = player.playerView else { return }
         guard !isBackground else { return }
         
-        playTimer.fireDate = .distantFuture
+        playTimer?.fireDate = .distantFuture
         if !userPaused, state == .playing { pauseNoUser() }
     }
     
@@ -343,7 +344,7 @@ extension PLVideoPlayer: PLPlayerDelegate {
         guard let _ = player.playerView else { return }
         guard !isBackground else { return }
         
-        playTimer.fireDate = Date()
+        playTimer?.fireDate = .init()
         if !userPaused, state == .paused { play() }
     }
 }
@@ -385,7 +386,7 @@ extension PLVideoPlayer: VideoPlayerable {
         playerView.backgroundColor = .clear
         playerView.contentMode = .scaleAspectFit
         
-        playTimer.fireDate = Date()
+        playTimer?.fireDate = .init()
         
         state = .stopped
         loading = true
@@ -401,7 +402,7 @@ extension PLVideoPlayer: VideoPlayerable {
     func play() {
         guard ready else { return }
         
-        playTimer.fireDate = Date()
+        playTimer?.fireDate = .init()
         userPaused = false
         state = .playing
         player?.resume()
@@ -418,7 +419,7 @@ extension PLVideoPlayer: VideoPlayerable {
     func stop() {
         clear(true)
         loading = false
-        playTimer.fireDate = .distantFuture
+        playTimer?.fireDate = .distantFuture
         state = .stopped
     }
     
