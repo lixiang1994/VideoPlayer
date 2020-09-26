@@ -86,7 +86,7 @@ class AVVideoPlayer: NSObject {
         }
     }
     /// 音频会话队列
-    var audioSessionQueue: DispatchQueue = .global()
+    var audioSessionQueue: DispatchQueue = .audioSession
     
     var delegates: [DelegateBridge<AnyObject>] = []
     private lazy var player = AVPlayer()
@@ -384,8 +384,8 @@ extension AVVideoPlayer: VideoPlayerable {
         item.audioTimePitchAlgorithm = .timeDomain
         player = AVPlayer(playerItem: item)
         player.actionAtItemEnd = .pause
-        player.rate = Float(rate)
-        player.volume = Float(volume)
+        player.rate = .init(rate)
+        player.volume = .init(volume)
         player.isMuted = isMuted
         
         if #available(iOS 10.0, *) {
@@ -445,7 +445,7 @@ extension AVVideoPlayer: VideoPlayerable {
         guard ready else { return }
         
         player.play()
-        player.rate = Float(rate)
+        player.rate = .init(rate)
         userPaused = false
         state = .playing
     }
@@ -487,7 +487,7 @@ extension AVVideoPlayer: VideoPlayerable {
             
             if self.state == .playing {
                 player.play()
-                player.rate = Float(self.rate)
+                player.rate = .init(self.rate)
             }
             
             // 恢复监听

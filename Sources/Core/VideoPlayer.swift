@@ -40,7 +40,7 @@ public extension VideoPlayer {
                 print("音频会话创建失败")
             }
             
-            DispatchQueue.main.async(execute: completion)
+            DispatchQueue.sync(safe: .main, execute: completion)
         }
     }
     
@@ -55,7 +55,7 @@ public extension VideoPlayer {
                 print("音频会话释放失败")
             }
             
-            DispatchQueue.main.async(execute: completion)
+            DispatchQueue.sync(safe: .main, execute: completion)
         }
     }
 }
@@ -77,5 +77,29 @@ extension VideoPlayer {
         public func instance() -> VideoPlayerable {
             return generator()
         }
+    }
+}
+
+extension DispatchQueue {
+    
+    public static let audioSession: DispatchQueue = .init(label: "com.audio.session.queue")
+}
+
+extension DispatchQueue {
+    
+    private static func isCurrent(_ queue: DispatchQueue) -> Bool {
+        let key = DispatchSpecificKey<Void>()
+        
+        queue.setSpecific(key: key, value: ())
+        defer { queue.setSpecific(key: key, value: nil) }
+        
+        return getSpecific(key: key) != nil
+    }
+    
+    /// 安全同步执行 (可防止死锁)
+    /// - Parameter queue: 队列
+    /// - Parameter work: 执行
+    static func sync(safe queue: DispatchQueue, execute work: () -> Void) {
+        isCurrent(queue) ? work() : queue.sync(execute: work)
     }
 }

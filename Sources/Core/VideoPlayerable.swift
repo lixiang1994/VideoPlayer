@@ -50,7 +50,7 @@ public protocol VideoPlayerable: NSObjectProtocol {
     var isAutoPlay: Bool { get set }
     /// 设置播放信息
     var playingInfo: VideoPlayerInfo? { get set }
-    /// 设置音频会话队列  默认: global()
+    /// 设置音频会话队列  默认: .audioSession
     var audioSessionQueue: DispatchQueue { get set }
     
     /// 监听播放回调

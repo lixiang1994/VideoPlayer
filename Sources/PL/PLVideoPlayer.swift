@@ -61,7 +61,7 @@ class PLVideoPlayer: NSObject {
     }
     /// 音量 0 - 1
     var volume: Double = 1.0 {
-        didSet { player?.setVolume(Float(volume)) }
+        didSet { player?.setVolume(.init(volume)) }
     }
     /// 是否静音
     var isMuted: Bool = false {
@@ -89,7 +89,7 @@ class PLVideoPlayer: NSObject {
         }
     }
     /// 音频会话队列
-    var audioSessionQueue: DispatchQueue = .global()
+    var audioSessionQueue: DispatchQueue = .audioSession
     
     var delegates: [DelegateBridge<AnyObject>] = []
     private var playTimer: Timer?
@@ -171,7 +171,7 @@ extension PLVideoPlayer {
         }
         guard let _ = player else { return }
         
-        switch AVAudioSession.RouteChangeReason(rawValue: UInt(reason)) {
+        switch AVAudioSession.RouteChangeReason(rawValue: .init(reason)) {
         case .oldDeviceUnavailable?:
             DispatchQueue.main.async { [weak self] in
                 self?.pauseNoUser()
@@ -189,7 +189,7 @@ extension PLVideoPlayer {
         }
         guard let _ = player else { return }
         
-        switch AVAudioSession.InterruptionType(rawValue: UInt(type)) {
+        switch AVAudioSession.InterruptionType(rawValue: .init(type)) {
         case .began?:
             if !userPaused, state == .playing { pauseNoUser() }
         case .ended?:
@@ -262,7 +262,7 @@ extension PLVideoPlayer: PLPlayerDelegate {
             
             if !ready {
                 if isAutoPlay {
-                    self.playTimer?.fireDate = Date()
+                    self.playTimer?.fireDate = .init()
                     self.userPaused = false
                     self.state = .playing
                     player.play()
@@ -371,7 +371,7 @@ extension PLVideoPlayer: VideoPlayerable {
         player.isBackgroundPlayEnable = true
         player.loopPlay = isLoop
         player.playSpeed = rate
-        player.setVolume(Float(volume))
+        player.setVolume(.init(volume))
         player.isMute = isMuted
         self.player = player
         playerView = VideoPlayerView({

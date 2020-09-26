@@ -43,7 +43,7 @@ public class VideoPlayerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override public var contentMode: UIView.ContentMode {
+    public override var contentMode: UIView.ContentMode {
         get {
             return super.contentMode
         }
@@ -53,7 +53,7 @@ public class VideoPlayerView: UIView {
         }
     }
     
-    override public func layoutSubviews() {
+    public override func layoutSubviews() {
         super.layoutSubviews()
         
         updateLayout?(bounds.size, layer.animation(forKey: "bounds.size"))
