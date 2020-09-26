@@ -249,7 +249,7 @@ extension AVVideoPlayer {
             let observation = item.observe(\.loadedTimeRanges) {
                 [weak self] (observer, change) in
                 guard let self = self else { return }
-                guard let timeRange = observer.loadedTimeRanges.first as? CMTimeRange else { return }
+                guard let timeRange = observer.loadedTimeRanges.first?.timeRangeValue else { return }
                 guard let totalTime = self.totalTime else { return }
                 // 本次缓冲时间范围
                 let start = timeRange.start.seconds

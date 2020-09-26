@@ -31,10 +31,10 @@ sub.dependency 'VideoPlayer/Core'
 sub.source_files = 'Sources/AV/*.swift'
 end
 
-s.subspec 'PLPlayer' do |sub|
-sub.dependency 'VideoPlayer/Core'
-sub.source_files = 'Sources/PL/*.swift'
-sub.dependency 'PLPlayerKit', '3.4.3'
-end
+#s.subspec 'PLPlayer' do |sub|
+#sub.dependency 'VideoPlayer/Core'
+#sub.source_files = 'Sources/PL/*.swift'
+#sub.dependency 'PLPlayerKit', '3.4.3'
+#end
 
 end
