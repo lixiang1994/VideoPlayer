@@ -15,14 +15,17 @@ public class VideoPlayerView: UIView {
     private var updateContentMode: ((UIView.ContentMode) -> Void)?
     private var updateLayout: ((CGSize, CAAnimation?) -> Void)?
     
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-    }
+    public let playerLayer: CALayer
     
-    init(_ add: (UIView) -> Void) {
+    init(_ layer: CALayer) {
+        playerLayer = layer
         super.init(frame: .zero)
         clipsToBounds = true
-        add(self)
+        self.layer.addSublayer(layer)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
     func observe(contentMode: @escaping ((UIView.ContentMode) -> Void)) {
@@ -37,10 +40,6 @@ public class VideoPlayerView: UIView {
             layout(size, animation)
         }
         layoutSubviews()
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
     
     public override var contentMode: UIView.ContentMode {

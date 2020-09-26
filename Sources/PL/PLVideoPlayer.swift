@@ -94,7 +94,7 @@ class PLVideoPlayer: NSObject {
     var delegates: [DelegateBridge<AnyObject>] = []
     private var playTimer: Timer?
     private var player: PLPlayer?
-    private var playerView = VideoPlayerView()
+    private var playerView = VideoPlayerView(.init())
     private var userPaused: Bool = false
     private var seekCompletion: (() -> Void)?
     private var ready: Bool = false
@@ -364,7 +364,7 @@ extension PLVideoPlayer: VideoPlayerable {
             let player = PLPlayer(url: url, option: PLPlayerOption.default()),
             let view = player.playerView else {
             state = .error
-            return VideoPlayerView()
+            return VideoPlayerView(.init())
         }
         
         player.delegate = self
@@ -374,9 +374,7 @@ extension PLVideoPlayer: VideoPlayerable {
         player.setVolume(.init(volume))
         player.isMute = isMuted
         self.player = player
-        playerView = VideoPlayerView({
-            $0.addSubview(view)
-        })
+        playerView = VideoPlayerView(view.layer)
         playerView.observe { (contentMode) in
             view.contentMode = contentMode
         }

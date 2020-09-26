@@ -91,7 +91,7 @@ class AVVideoPlayer: NSObject {
     var delegates: [DelegateBridge<AnyObject>] = []
     private lazy var player = AVPlayer()
     private lazy var playerLayer = AVPlayerLayer(player: player)
-    private lazy var playerView: VideoPlayerView = VideoPlayerView()
+    private lazy var playerView: VideoPlayerView = VideoPlayerView(.init())
     
     private var playerTimeObserver: Any?
     private var userPaused: Bool = false
@@ -403,9 +403,7 @@ extension AVVideoPlayer: VideoPlayerable {
         state = .stopped
         
         // 构建播放视图
-        playerView = VideoPlayerView({ (view) in
-            view.layer.addSublayer(layer)
-        })
+        playerView = VideoPlayerView(layer)
         playerView.observe { (size, animation) in
             if let animation = animation {
                 CATransaction.begin()
