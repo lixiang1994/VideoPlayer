@@ -217,6 +217,7 @@ extension AVVideoPlayer {
                 self.userPaused = false
                 
             case .playing:
+                observer.rate = .init(self.rate)
                 self.state = .playing
                 self.userPaused = false
                 
