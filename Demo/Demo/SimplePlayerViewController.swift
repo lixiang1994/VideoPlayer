@@ -221,5 +221,6 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
         print("PictureInPicture停止之前恢复用户界面")
         // 设置非画中画关闭
         isPictureClose = false
+        completionHandler(true)
     }
 }
