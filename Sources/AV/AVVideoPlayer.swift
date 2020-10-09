@@ -220,8 +220,8 @@ extension AVVideoPlayer {
                 self.state = .playing
                 self.userPaused = false
                 
-            case .waitingToPlayAtSpecifiedRate:
-                print("waitingToPlayAtSpecifiedRate")
+            default:
+                break
             }
         }
         
@@ -417,10 +417,10 @@ extension AVVideoPlayer {
     private func willEnterForeground(_ notification: NSNotification) {
         guard let item = player.currentItem else { return }
         guard !userPaused, state == .paused else { return }
+        
         var observation: NSKeyValueObservation?
-        observation = item.observe(\.status) {
-            [weak self] (observer, change) in
-            defer { observation = nil }
+        observation = item.observe(\.status) { [weak self] (observer, change) in
+            observation = nil
             guard let self = self else { return }
             
             switch observer.status {
