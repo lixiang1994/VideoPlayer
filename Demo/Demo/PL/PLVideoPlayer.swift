@@ -8,12 +8,13 @@
 //  └───────┘└───────┘ └───────┘
 //
 import UIKit
+import VideoPlayer
 
 #if !targetEnvironment(simulator)
 
 import PLPlayerKit
 
-public extension VideoPlayer {
+extension VideoPlayer {
     
     static let pl: Builder = .init { PLVideoPlayer() }
 }
@@ -75,8 +76,6 @@ class PLVideoPlayer: NSObject {
             player?.loopPlay = isLoop
         }
     }
-    /// 是否后台播放
-    var isBackground: Bool = false
     /// 是否自动播放
     var isAutoPlay: Bool = true
     /// 播放信息 (锁屏封面)
@@ -91,7 +90,7 @@ class PLVideoPlayer: NSObject {
     /// 音频会话队列
     var audioSessionQueue: DispatchQueue = .audioSession
     
-    var delegates: [DelegateBridge<AnyObject>] = []
+    var delegates: [VideoPlayerDelageteBridge<AnyObject>] = []
     private var playTimer: Timer?
     private var player: PLPlayer?
     private var playerView = VideoPlayerView(.init())
@@ -111,7 +110,6 @@ class PLVideoPlayer: NSObject {
         volume = 1.0
         isMuted = false
         isLoop = false
-        isBackground = false
         
         let timer = Timer(timeInterval: 0.1,
                           target: WeakObject(self),
@@ -314,12 +312,14 @@ extension PLVideoPlayer: PLPlayerDelegate {
         // 缓冲进度
         let progress = (duration - start) / totalTime
         
-        print("""
+        print(
+            """
             ==========pl===========
-            duration \(duration)
-            totalDuration \(totalTime)
+            duration \(duration)\n
+            total \(totalTime)\n
             progress \(progress)\n
-            """)
+            """
+        )
         
         delegate { $0.videoPlayer(self, updatedBuffer: progress) }
     }
@@ -334,7 +334,6 @@ extension PLVideoPlayer: PLPlayerDelegate {
     
     func playerWillBeginBackgroundTask(_ player: PLPlayer) {
         guard let _ = player.playerView else { return }
-        guard !isBackground else { return }
         
         playTimer?.fireDate = .distantFuture
         if !userPaused, state == .playing { pauseNoUser() }
@@ -342,14 +341,14 @@ extension PLVideoPlayer: PLPlayerDelegate {
     
     func playerWillEndBackgroundTask(_ player: PLPlayer) {
         guard let _ = player.playerView else { return }
-        guard !isBackground else { return }
         
         playTimer?.fireDate = .init()
         if !userPaused, state == .paused { play() }
     }
 }
 
-extension PLVideoPlayer: PlayerDelagetes {
+extension PLVideoPlayer: VideoPlayerDelagetes {
+    
     typealias Element = VideoPlayerDelagete
 }
 

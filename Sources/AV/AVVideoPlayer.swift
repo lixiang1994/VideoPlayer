@@ -57,12 +57,12 @@ class AVVideoPlayer: NSObject {
     var rate: Double = 1.0 {
         didSet {
             guard state == .playing else { return }
-            player.rate = Float(rate)
+            player.rate = .init(rate)
         }
     }
     /// 音量 0 - 1
     var volume: Double = 1.0 {
-        didSet { player.volume = Float(volume)}
+        didSet { player.volume = .init(volume)}
     }
     /// 是否静音
     var isMuted: Bool = false {
@@ -72,8 +72,6 @@ class AVVideoPlayer: NSObject {
     }
     /// 是否循环播放
     var isLoop: Bool = false
-    /// 是否后台播放
-    var isBackground: Bool = false
     /// 是否自动播放
     var isAutoPlay: Bool = true
     /// 播放信息 (锁屏封面和远程控制)
@@ -88,7 +86,7 @@ class AVVideoPlayer: NSObject {
     /// 音频会话队列
     var audioSessionQueue: DispatchQueue = .audioSession
     
-    var delegates: [DelegateBridge<AnyObject>] = []
+    var delegates: [VideoPlayerDelageteBridge<AnyObject>] = []
     private lazy var player = AVPlayer()
     private lazy var playerLayer = AVPlayerLayer(player: player)
     private lazy var playerView: VideoPlayerView = VideoPlayerView(.init())
@@ -99,10 +97,16 @@ class AVVideoPlayer: NSObject {
     private var ready: Bool = false
     private var currentUrl: URL?
     
+    private var timeControlStatusObservation: NSKeyValueObservation?
+    private var reasonForWaitingToPlayObservation: NSKeyValueObservation?
+    
     private var itemStatusObservation: NSKeyValueObservation?
     private var itemDurationObservation: NSKeyValueObservation?
     private var itemLoadedTimeRangesObservation: NSKeyValueObservation?
     private var itemPlaybackLikelyToKeepUpObservation: NSKeyValueObservation?
+    
+    /// 后台任务标识
+    private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
     
     override init() {
         super.init()
@@ -116,31 +120,39 @@ class AVVideoPlayer: NSObject {
         volume = 1.0
         isMuted = false
         isLoop = false
-        isBackground = false
     }
     
     private func setupNotification() {
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(itemDidPlayToEndTime(_:)), name: .AVPlayerItemDidPlayToEndTime, object: nil)
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(itemPlaybackStalled(_:)), name: .AVPlayerItemPlaybackStalled, object: nil)
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(sessionRouteChange(_:)), name: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance())
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruption(_:)), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground(_:)), name: UIApplication.didEnterBackgroundNotification, object: nil)
-    }
-}
-
-extension AVVideoPlayer {
-    
-    private func pauseNoUser() {
-        player.pause()
-        userPaused = false
-        state = .paused
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(itemDidPlayToEndTime),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(itemPlaybackStalled),
+            name: .AVPlayerItemPlaybackStalled,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sessionRouteChange),
+            name: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sessionInterruption),
+            name: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(willEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
     }
 }
 
@@ -194,11 +206,62 @@ extension AVVideoPlayer {
             let time = CMTimeGetSeconds(time)
             self.delegate{ $0.videoPlayer(self, updatedCurrent: time) }
         }
+        
+        timeControlStatusObservation = player.observe(\.timeControlStatus) {
+            [weak self] (observer, change) in
+            guard let self = self else { return }
+            
+            switch observer.timeControlStatus {
+            case .paused:
+                self.state = .paused
+                self.userPaused = false
+                
+            case .playing:
+                self.state = .playing
+                self.userPaused = false
+                
+            case .waitingToPlayAtSpecifiedRate:
+                print("waitingToPlayAtSpecifiedRate")
+            }
+        }
+        
+        reasonForWaitingToPlayObservation = player.observe(\.reasonForWaitingToPlay) {
+            [weak self] (observer, change) in
+            guard let self = self else { return }
+            guard observer.automaticallyWaitsToMinimizeStalling else { return }
+            guard observer.timeControlStatus == .waitingToPlayAtSpecifiedRate else { return }
+            
+            switch observer.reasonForWaitingToPlay {
+            case .toMinimizeStalls?:
+                print("toMinimizeStalls")
+                self.loading = true
+                
+            case .evaluatingBufferingRate?:
+                print("evaluatingBufferingRate")
+                
+            case .noItemToPlay?:
+                print("noItemToPlay")
+                
+            default:
+                self.loading = false
+            }
+        }
     }
     private func removeObserver() {
-        guard let observer = playerTimeObserver else { return }
-        playerTimeObserver = nil
-        player.removeTimeObserver(observer)
+        if let observer = playerTimeObserver {
+            playerTimeObserver = nil
+            player.removeTimeObserver(observer)
+        }
+        
+        if let observer = timeControlStatusObservation {
+            observer.invalidate()
+            timeControlStatusObservation = nil
+        }
+        
+        if let observer = reasonForWaitingToPlayObservation {
+            observer.invalidate()
+            reasonForWaitingToPlayObservation = nil
+        }
     }
     
     private func addObserver(item: AVPlayerItem) {
@@ -208,28 +271,24 @@ extension AVVideoPlayer {
                 guard let self = self else { return }
                 
                 switch observer.status {
-                case .unknown: break
                 case .readyToPlay:
                     if self.isAutoPlay {
-                        self.player.play()
-                        self.player.rate = Float(self.rate)
-                        self.userPaused = false
-                        self.state = .playing
+                        self.player.playImmediately(atRate: .init(self.rate))
                         
                     } else {
                         self.player.pause()
                         self.userPaused = true
-                        self.state = .paused
                     }
                     self.ready = true
                     self.delegate { $0.videoPlayerReady(self) }
+                    self.itemStatusObservation = nil
                     
                 case .failed:
                     // 异常
                     print(item.error?.localizedDescription ?? "无法获取错误信息")
                     self.error()
                     
-                @unknown default:
+                default:
                     break
                 }
             }
@@ -242,6 +301,7 @@ extension AVVideoPlayer {
                 // 获取总时长
                 let time = observer.duration.seconds
                 self.delegate { $0.videoPlayer(self, updatedTotal: time) }
+                self.itemDurationObservation = nil
             }
             itemDurationObservation = observation
         }
@@ -274,17 +334,18 @@ extension AVVideoPlayer {
         }
     }
     private func removeObserver(item: AVPlayerItem) {
-        itemStatusObservation?.invalidate()
-        itemDurationObservation?.invalidate()
-        itemLoadedTimeRangesObservation?.invalidate()
-        itemPlaybackLikelyToKeepUpObservation?.invalidate()
+        itemStatusObservation = nil
+        itemDurationObservation = nil
+        itemLoadedTimeRangesObservation = nil
+        itemPlaybackLikelyToKeepUpObservation = nil
     }
 }
 
 extension AVVideoPlayer {
     
     /// 播放结束通知
-    @objc func itemDidPlayToEndTime(_ notification: NSNotification) {
+    @objc
+    private func itemDidPlayToEndTime(_ notification: NSNotification) {
         guard notification.object as? AVPlayerItem == player.currentItem else {
             return
         }
@@ -293,15 +354,18 @@ extension AVVideoPlayer {
             guard let self = self else { return }
             if self.isLoop {
                 self.delegate { $0.videoPlayer(self, updatedCurrent: 0.0) }
+                
             } else {
                 self.player.pause()
+                self.userPaused = true
                 self.state = .finish
             }
         }
     }
     
     /// 播放异常通知
-    @objc func itemPlaybackStalled(_ notification: NSNotification) {
+    @objc
+    private func itemPlaybackStalled(_ notification: NSNotification) {
         guard notification.object as? AVPlayerItem == player.currentItem else {
             return
         }
@@ -309,7 +373,8 @@ extension AVVideoPlayer {
     }
     
     /// 会话线路变更通知
-    @objc func sessionRouteChange(_ notification: NSNotification) {
+    @objc
+    private func sessionRouteChange(_ notification: NSNotification) {
         guard
             let info = notification.userInfo,
             let reason = info[AVAudioSessionRouteChangeReasonKey] as? Int else {
@@ -320,14 +385,15 @@ extension AVVideoPlayer {
         switch AVAudioSession.RouteChangeReason(rawValue: UInt(reason)) {
         case .oldDeviceUnavailable?:
             DispatchQueue.main.async {
-                self.pauseNoUser()
+                self.player.pause()
             }
         default: break
         }
     }
     
     /// 会话中断通知
-    @objc func sessionInterruption(_ notification: NSNotification) {
+    @objc
+    private func sessionInterruption(_ notification: NSNotification) {
         guard
             let info = notification.userInfo,
             let type = info[AVAudioSessionInterruptionTypeKey] as? Int else {
@@ -335,9 +401,9 @@ extension AVVideoPlayer {
         }
         guard let _ = player.currentItem else { return }
         
-        switch AVAudioSession.InterruptionType(rawValue: UInt(type)) {
+        switch AVAudioSession.InterruptionType(rawValue: .init(type)) {
         case .began?:
-            if !userPaused, state == .playing { pauseNoUser() }
+            if !userPaused, state == .playing { player.pause() }
         case .ended?:
             if !userPaused, state == .paused { play() }
         case .none:
@@ -347,24 +413,27 @@ extension AVVideoPlayer {
         }
     }
     
-    @objc func willEnterForeground(_ notification: NSNotification) {
-        guard let _ = player.currentItem else { return }
-        guard !isBackground else {
-            // 恢复layer的播放器
-            playerLayer.player = player
-            return
+    @objc
+    private func willEnterForeground(_ notification: NSNotification) {
+        guard let item = player.currentItem else { return }
+        guard !userPaused, state == .paused else { return }
+        var observation: NSKeyValueObservation?
+        observation = item.observe(\.status) {
+            [weak self] (observer, change) in
+            defer { observation = nil }
+            guard let self = self else { return }
+            
+            switch observer.status {
+            case .readyToPlay:
+                self.play()
+                
+            case .failed:
+                self.error()
+                
+            default:
+                break
+            }
         }
-        if !userPaused, state == .paused { play() }
-    }
-    
-    @objc func didEnterBackground(_ notification: NSNotification) {
-        guard let _ = player.currentItem else { return }
-        guard !isBackground else {
-            // 后台播放模式时 移除layer的播放器 停止渲染 只播放音频
-            playerLayer.player = nil
-            return
-        }
-        if !userPaused, state == .playing { pauseNoUser() }
     }
 }
 
@@ -388,9 +457,7 @@ extension AVVideoPlayer: VideoPlayerable {
         player.volume = .init(volume)
         player.isMuted = isMuted
         
-        if #available(iOS 10.0, *) {
-            player.automaticallyWaitsToMinimizeStalling = false
-        }
+        player.automaticallyWaitsToMinimizeStalling = false
         
         addObserver()
         addObserver(item: item)
@@ -441,19 +508,17 @@ extension AVVideoPlayer: VideoPlayerable {
     
     func play() {
         guard ready else { return }
+        guard !isSeeking else { return }
         
-        player.play()
-        player.rate = .init(rate)
-        userPaused = false
-        state = .playing
+        player.playImmediately(atRate: .init(rate))
     }
     
     func pause() {
         guard ready else { return }
+        guard !isSeeking else { return }
         
         player.pause()
         userPaused = true
-        state = .paused
     }
     
     func stop() {
@@ -472,10 +537,9 @@ extension AVVideoPlayer: VideoPlayerable {
         }
         
         let player = self.player
-        if state == .playing { player.pause() }
+        let isPlaying = state == .playing
+        if isPlaying { player.pause() }
         
-        // 暂时移除监听
-        removeObserver()
         isSeeking = true
         
         let changeTime = CMTimeMakeWithSeconds(time, preferredTimescale: 1)
@@ -483,13 +547,10 @@ extension AVVideoPlayer: VideoPlayerable {
             guard let self = self else { return }
             guard finished, player == self.player else { return }
             
-            if self.state == .playing {
-                player.play()
-                player.rate = .init(self.rate)
+            if isPlaying {
+                player.playImmediately(atRate: .init(self.rate))
             }
             
-            // 恢复监听
-            self.addObserver()
             self.isSeeking = false
             self.delegate { $0.videoPlayerSeekFinish(self) }
             completion()
@@ -513,7 +574,7 @@ extension AVVideoPlayer: VideoPlayerable {
     }
 }
 
-extension AVVideoPlayer: PlayerDelagetes  {
+extension AVVideoPlayer: VideoPlayerDelagetes {
     
     typealias Element = VideoPlayerDelagete
 }

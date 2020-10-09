@@ -166,31 +166,40 @@ class VideoPlayerControlView: UIView {
         loadingView.center = center
         stateButton.center = center
         
-        bottomView.frame = CGRect(x: 0,
-                                  y: bounds.height - 30,
-                                  width: bounds.width,
-                                  height: 30)
+        bottomView.frame = CGRect(
+            x: 0,
+            y: bounds.height - 30,
+            width: bounds.width,
+            height: 30
+        )
         
-        progressView.frame = CGRect(x: 50,
-                                    y: bottomView.bounds.height - 15,
-                                    width: bottomView.bounds.width - 100,
-                                    height: 15)
+        progressView.frame = CGRect(
+            x: 50,
+            y: bottomView.bounds.height - 15,
+            width: bottomView.bounds.width - 100,
+            height: 15
+        )
         sliderView.frame = progressView.frame
-        currentLabel.frame = CGRect(x: 0,
-                                    y: 0,
-                                    width: 50,
-                                    height: 30)
-        totalLabel.frame = CGRect(x: bottomView.bounds.width - 50,
-                                  y: 0,
-                                  width: 50,
-                                  height: 30)
+        currentLabel.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 30
+        )
+        totalLabel.frame = CGRect(
+            x: bottomView.bounds.width - 50,
+            y: 0,
+            width: 50,
+            height: 30
+        )
     }
 }
 
 /// 事件处理
 extension VideoPlayerControlView {
     
-    @objc private func stateAction(_ sender: UIButton) {
+    @objc
+    private func stateAction(_ sender: UIButton) {
         sender.isSelected = !sender.isSelected
         if sender.isSelected {
             delegate?.controlPlay()
@@ -199,34 +208,40 @@ extension VideoPlayerControlView {
         }
     }
     
-    @objc private func sliderTouchBegin(_ sender: UISlider) {
+    @objc
+    private func sliderTouchBegin(_ sender: UISlider) {
         isDraging = true
         autoHide(true)
     }
     
-    @objc private func sliderTouchEnd(_ sender: UISlider) {
+    @objc
+    private func sliderTouchEnd(_ sender: UISlider) {
         isDraging = false
         delegate?.controlSeek(time: Double(sender.value)) { }
         autoHide()
     }
     
-    @objc private func sliderTouchCancel(_ sender: UISlider) {
+    @objc
+    private func sliderTouchCancel(_ sender: UISlider) {
         isDraging = false
         delegate?.controlSeek(time: Double(sender.value)) { }
         autoHide()
     }
     
-    @objc private func sliderValueChanged(_ sender: UISlider) {
+    @objc
+    private func sliderValueChanged(_ sender: UISlider) {
         
         currentLabel.text = timeToHMS(time: Float64(sender.value))
     }
     
-    @objc private func singleTapAction(_ gesture: UITapGestureRecognizer) {
+    @objc
+    private func singleTapAction(_ gesture: UITapGestureRecognizer) {
         isShow = !isShow
         autoHide()
     }
     
-    @objc private func doubleTapAction(_ gesture: UITapGestureRecognizer) {
+    @objc
+    private func doubleTapAction(_ gesture: UITapGestureRecognizer) {
         stateAction(stateButton)
     }
 }

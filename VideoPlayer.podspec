@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
 s.name         = "VideoPlayer"
-s.version      = "2.0.0"
+s.version      = "3.0.0"
 s.summary      = "视频播放器"
 
 s.homepage     = "https://github.com/lixiang1994/VideoPlayer"
@@ -30,11 +30,5 @@ s.subspec 'AVPlayer' do |sub|
 sub.dependency 'VideoPlayer/Core'
 sub.source_files = 'Sources/AV/*.swift'
 end
-
-#s.subspec 'PLPlayer' do |sub|
-#sub.dependency 'VideoPlayer/Core'
-#sub.source_files = 'Sources/PL/*.swift'
-#sub.dependency 'PLPlayerKit', '3.4.3'
-#end
 
 end

@@ -33,7 +33,7 @@ public class VideoPlayerInfo: VideoPlayerDelagete {
     
     weak var player: VideoPlayerable?
     
-    func set(_ player: VideoPlayerable) {
+    public func set(_ player: VideoPlayerable) {
         self.player = player
     }
     

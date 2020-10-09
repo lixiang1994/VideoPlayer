@@ -7,7 +7,7 @@ class VideoPlayerProvider: NSObject {
     typealias ErrorView = UIView & VideoPlayerErrorViewable
     typealias CoverView = UIView & VideoPlayerCoverViewable
     
-    private weak var player: VideoPlayerable?
+    private(set) weak var player: VideoPlayerable?
     
     private let controlView: ControlView?
     private let finishView: FinishView?

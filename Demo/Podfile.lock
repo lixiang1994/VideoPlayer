@@ -3,20 +3,17 @@ PODS:
     - PLPlayerKit/iphoneos (= 3.4.3)
   - PLPlayerKit/iphoneos (3.4.3)
   - SnapKit (5.0.1)
-  - VideoPlayer (1.1.3):
-    - VideoPlayer/AVPlayer (= 1.1.3)
-    - VideoPlayer/Core (= 1.1.3)
-  - VideoPlayer/AVPlayer (1.1.3):
+  - VideoPlayer (2.1.0):
+    - VideoPlayer/AVPlayer (= 2.1.0)
+    - VideoPlayer/Core (= 2.1.0)
+  - VideoPlayer/AVPlayer (2.1.0):
     - VideoPlayer/Core
-  - VideoPlayer/Core (1.1.3)
-  - VideoPlayer/PLPlayer (1.1.3):
-    - PLPlayerKit (= 3.4.3)
-    - VideoPlayer/Core
+  - VideoPlayer/Core (2.1.0)
 
 DEPENDENCIES:
+  - PLPlayerKit (= 3.4.3)
   - SnapKit (~> 5.0.0)
   - VideoPlayer (from `../`)
-  - VideoPlayer/PLPlayer (from `../`)
 
 SPEC REPOS:
   trunk:
@@ -30,8 +27,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   PLPlayerKit: a44734dc78c1f8f9fb22c537fa1916612fa46b06
   SnapKit: 97b92857e3df3a0c71833cce143274bf6ef8e5eb
-  VideoPlayer: 8388dbe10b3d7976cf39f674b7c47f8c619e87cf
+  VideoPlayer: 63d314832dd17997451facf4fab50e3d616a91a8
 
-PODFILE CHECKSUM: 64384f19e1f9b1ee8c6baeee66f9d7690b9af261
+PODFILE CHECKSUM: 273ff2c8e4d66cfdbdf70069686deccdfacac1a1
 
 COCOAPODS: 1.9.3

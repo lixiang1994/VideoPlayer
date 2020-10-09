@@ -9,30 +9,30 @@
 //
 import Foundation
 
-protocol PlayerDelagetes: NSObjectProtocol {
+public protocol VideoPlayerDelagetes: NSObjectProtocol {
     
     associatedtype Element
     
-    var delegates: [DelegateBridge<AnyObject>] { get set }
+    var delegates: [VideoPlayerDelageteBridge<AnyObject>] { get set }
 }
 
-extension PlayerDelagetes {
+extension VideoPlayerDelagetes {
     
-    func add(delegate: Element) {
+    public func add(delegate: Element) {
         guard !delegates.contains(where: { $0.object === delegate as AnyObject }) else {
             return
         }
-        delegates.append(DelegateBridge(delegate as AnyObject))
+        delegates.append(.init(delegate as AnyObject))
     }
     
-    func remove(delegate: Element) {
+    public func remove(delegate: Element) {
         guard let index = delegates.firstIndex(where: { $0.object === delegate as AnyObject }) else {
             return
         }
         delegates.remove(at: index)
     }
     
-    func delegate(_ operat: (Element) -> Void) {
+    public func delegate(_ operat: (Element) -> Void) {
         delegates = delegates.filter({ $0.object != nil })
         for delegate in delegates {
             guard let object = delegate.object as? Element else { continue }
@@ -41,7 +41,7 @@ extension PlayerDelagetes {
     }
 }
 
-class DelegateBridge<I: AnyObject> {
+public class VideoPlayerDelageteBridge<I: AnyObject> {
     weak var object: I?
     init(_ object: I?) {
         self.object = object

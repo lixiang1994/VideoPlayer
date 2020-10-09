@@ -44,8 +44,6 @@ public protocol VideoPlayerable: NSObjectProtocol {
     var volume: Double { get set }
     /// 是否循环播放  默认: false
     var isLoop: Bool { get set }
-    /// 是否允许后台播放  默认: false
-    var isBackground: Bool { get set }
     /// 是否自动播放  默认: true
     var isAutoPlay: Bool { get set }
     /// 设置播放信息

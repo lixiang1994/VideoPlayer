@@ -17,7 +17,7 @@ public class VideoPlayerView: UIView {
     
     public let playerLayer: CALayer
     
-    init(_ layer: CALayer) {
+    public init(_ layer: CALayer) {
         playerLayer = layer
         super.init(frame: .zero)
         clipsToBounds = true
@@ -28,14 +28,14 @@ public class VideoPlayerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func observe(contentMode: @escaping ((UIView.ContentMode) -> Void)) {
+    public func observe(contentMode: @escaping ((UIView.ContentMode) -> Void)) {
         updateContentMode = { (mode) in
             contentMode(mode)
         }
         updateContentMode?(self.contentMode)
     }
     
-    func observe(layout: @escaping ((CGSize, CAAnimation?) -> Void)) {
+    public func observe(layout: @escaping ((CGSize, CAAnimation?) -> Void)) {
         updateLayout = { (size, animation) in
             layout(size, animation)
         }

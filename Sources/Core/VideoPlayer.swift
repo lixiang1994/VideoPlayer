@@ -64,13 +64,13 @@ extension VideoPlayer {
     
     public class Builder {
         
-        typealias Generator = () -> VideoPlayerable
+        public typealias Generator = () -> VideoPlayerable
         
         private var generator: Generator
         
         public private(set) lazy var shared = generator()
         
-        init(_ generator: @escaping Generator) {
+        public init(_ generator: @escaping Generator) {
             self.generator = generator
         }
         
