@@ -17,6 +17,7 @@ class SimplePlayerViewController: UIViewController {
     
     private var provider: VideoPlayerProvider?
     private lazy var playerView = UIView()
+    private lazy var statusView = UIView()
     
     /// 画中画控制器
     private var pictureController: AVPictureInPictureController?
@@ -64,22 +65,26 @@ class SimplePlayerViewController: UIViewController {
         let finishView = VideoPlayerFinishView()
         
         view.layoutIfNeeded()
-        view.addSubview(controlView)
-        view.addSubview(coverView)
-        view.addSubview(errorView)
-        view.addSubview(finishView)
+        view.addSubview(statusView)
+        statusView.addSubview(controlView)
+        statusView.addSubview(coverView)
+        statusView.addSubview(errorView)
+        statusView.addSubview(finishView)
         
-        controlView.snp.makeConstraints { (make) in
+        statusView.snp.makeConstraints { (make) in
             make.edges.equalTo(playerView)
+        }
+        controlView.snp.makeConstraints { (make) in
+            make.edges.equalToSuperview()
         }
         coverView.snp.makeConstraints { (make) in
-            make.edges.equalTo(playerView)
+            make.edges.equalToSuperview()
         }
         errorView.snp.makeConstraints { (make) in
-            make.edges.equalTo(playerView)
+            make.edges.equalToSuperview()
         }
         finishView.snp.makeConstraints { (make) in
-            make.edges.equalTo(playerView)
+            make.edges.equalToSuperview()
         }
         
         coverView.imageView.image = #imageLiteral(resourceName: "video_cover")
@@ -97,9 +102,9 @@ class SimplePlayerViewController: UIViewController {
             self.playerView.subviews.forEach({ $0.removeFromSuperview() })
             self.playerView.addSubview(view)
             
-            view.snp.remakeConstraints({ (make) in
+            view.snp.remakeConstraints { (make) in
                 make.edges.equalToSuperview()
-            })
+            }
         }
         provider.set(player: player)
         self.provider = provider
@@ -152,19 +157,7 @@ extension SimplePlayerViewController: VideoPlayerDelagete {
                 )
             }
             
-        case .finished:
-            guard AVPictureInPictureController.isPictureInPictureSupported() else {
-                return
-            }
-            guard let controller = pictureController else {
-                return
-            }
-            guard controller.isPictureInPictureActive else {
-                return
-            }
-            controller.stopPictureInPicture()
-        
-        case .stopped, .failure:
+        case .finished, .stopped, .failure:
             guard AVPictureInPictureController.isPictureInPictureSupported() else {
                 return
             }
@@ -198,6 +191,9 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
     
     func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         print("已经开始PictureInPicture的代理方法")
+        // 隐藏视图
+        statusView.isHidden = true
+        
         if #available(iOS 14.0, *) {
             navigationItem.rightBarButtonItem = UIBarButtonItem(
                 image: AVPictureInPictureController.pictureInPictureButtonStopImage,
@@ -214,10 +210,9 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
     
     func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         print("将要停止PictureInPicture的代理方法")
-    }
-    
-    func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("已经停止PictureInPicture的代理方法")
+        // 显示视图
+        statusView.isHidden = false
+        
         if #available(iOS 14.0, *) {
             navigationItem.rightBarButtonItem = UIBarButtonItem(
                 image: AVPictureInPictureController.pictureInPictureButtonStartImage,
@@ -226,6 +221,10 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
                 action: #selector(startPictureAction)
             )
         }
+    }
+    
+    func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("已经停止PictureInPicture的代理方法")
         // 处理画中画关闭
         defer { isPictureClose = true }
         guard isPictureClose else { return }
@@ -238,6 +237,7 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
         print("PictureInPicture停止之前恢复用户界面")
         // 设置非画中画关闭
         isPictureClose = false
+        // 完成回调
         completionHandler(true)
     }
 }

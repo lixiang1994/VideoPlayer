@@ -17,7 +17,7 @@ public enum VideoPlayer {
     public enum State {
         /// 准备播放: 调用`prepare(url:)`后的状态.
         case prepare
-        /// 正在播放: `prepare`处理完成后的状态.
+        /// 正在播放: `prepare`处理完成后的状态,  当`finished`状态时再次调用`play()`也会回到该状态.
         case playing
         /// 播放停止: 默认的初始状态, 调用`stop()`后的状态.
         case stopped
