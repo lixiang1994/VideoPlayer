@@ -13,17 +13,34 @@ import AVFoundation
 
 public enum VideoPlayer {
     /// 播放状态
+    /// stopped -> prepare -> playing -> finished
     public enum State {
+        /// 准备播放: 调用`prepare(url:)`后的状态.
+        case prepare
+        /// 正在播放: `prepare`处理完成后的状态.
+        case playing
+        /// 播放停止: 默认的初始状态, 调用`stop()`后的状态.
+        case stopped
+        /// 播放完成: 在`isLoop = false`时触发.
+        case finished
+        /// 播放失败: 调用`prepare(url:)`后的任何时候 只要发送了异常便会触发该状态.
+        case failure(Swift.Error?)
+    }
+    
+    /// 控制状态: 仅在 state 为 .playing 状态时可用
+    public enum ControlState {
         /// 播放中
         case playing
-        /// 已暂停
-        case paused
-        /// 停止
-        case stopped
-        /// 播放完成
-        case finish
-        /// 播出出错
-        case error
+        /// 暂停中
+        case pausing
+    }
+    
+    /// 加载状态
+    public enum LoadingState {
+        /// 已开始
+        case began
+        /// 已结束
+        case ended
     }
 }
 

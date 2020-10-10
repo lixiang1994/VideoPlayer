@@ -24,37 +24,30 @@ class PLVideoPlayer: NSObject {
     static let shared = PLVideoPlayer()
     
     /// 当前URL
-    var url: URL? {
-        return player?.url
+    private(set) var url: URL?
+    
+    /// 播放状态
+    private (set) var state: VideoPlayer.State = .stopped {
+        didSet {
+            delegate { $0.videoPlayerState(self, state: state) }
+        }
+    }
+    
+    /// 控制状态
+    private(set) var control: VideoPlayer.ControlState = .pausing {
+        didSet {
+            delegate { $0.videoPlayerControlState(self, state: control) }
+        }
     }
     
     /// 加载状态
-    private(set) var loading: Bool = false {
+    private(set) var loading: VideoPlayer.LoadingState = .ended {
         didSet {
-            if loading {
-                delegate { $0.videoPlayerLoadingBegin(self) }
-            } else {
-                delegate { $0.videoPlayerLoadingEnd(self) }
-            }
+            delegate { $0.videoPlayerLoadingState(self, state: loading) }
         }
     }
-    /// 播放状态
-    private(set) var state: VideoPlayer.State = .stopped {
-        didSet {
-            switch state {
-            case .playing:
-                delegate { $0.videoPlayerPlaying(self) }
-            case .paused:
-                delegate { $0.videoPlayerPaused(self) }
-            case .stopped:
-                delegate { $0.videoPlayerStopped(self) }
-            case .finish:
-                delegate { $0.videoPlayerFinish(self) }
-            case .error:
-                delegate { $0.videoPlayerError(self) }
-            }
-        }
-    }
+    
+    private(set) var buffer: Double = 0
     
     /// 播放速率 0.5 - 2.0
     var rate: Double = 1.0 {
@@ -78,15 +71,6 @@ class PLVideoPlayer: NSObject {
     }
     /// 是否自动播放
     var isAutoPlay: Bool = true
-    /// 播放信息 (锁屏封面)
-    var playingInfo: VideoPlayerInfo? {
-        didSet {
-            guard let playingInfo = playingInfo else { return }
-            
-            playingInfo.set(self)
-            add(delegate: playingInfo)
-        }
-    }
     /// 音频会话队列
     var audioSessionQueue: DispatchQueue = .audioSession
     
@@ -96,7 +80,6 @@ class PLVideoPlayer: NSObject {
     private var playerView = VideoPlayerView(.init())
     private var userPaused: Bool = false
     private var seekCompletion: (() -> Void)?
-    private var ready: Bool = false
     
     override init() {
         super.init()
@@ -111,11 +94,13 @@ class PLVideoPlayer: NSObject {
         isMuted = false
         isLoop = false
         
-        let timer = Timer(timeInterval: 0.1,
-                          target: WeakObject(self),
-                          selector: #selector(timerAction),
-                          userInfo: nil,
-                          repeats: true)
+        let timer = Timer(
+            timeInterval: 0.1,
+            target: WeakObject(self),
+            selector: #selector(timerAction),
+            userInfo: nil,
+            repeats: true
+        )
         RunLoop.main.add(timer, forMode: .common)
         timer.fireDate = .distantFuture
         playTimer = timer
@@ -124,40 +109,35 @@ class PLVideoPlayer: NSObject {
     private func setupNotification() {
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(sessionRouteChange(_:)),
+            selector: #selector(sessionRouteChange),
             name: AVAudioSession.routeChangeNotification,
             object: AVAudioSession.sharedInstance()
         )
         
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(sessionInterruption(_:)),
+            selector: #selector(sessionInterruption),
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
         )
     }
     
     private func pauseNoUser() {
-        userPaused = false
         player?.pause()
+        userPaused = false
     }
     
     deinit {
         playTimer?.invalidate()
+        playTimer = nil
     }
 }
 
 extension PLVideoPlayer {
     
     @objc func timerAction() {
-        
-        if let time = currentTime {
-            delegate { $0.videoPlayer(self, updatedCurrent: time) }
-        }
-        
-        if let time = totalTime {
-            delegate { $0.videoPlayer(self, updatedTotal: time) }
-        }
+        delegate { $0.videoPlayer(self, updatedCurrent: current) }
+        delegate { $0.videoPlayer(self, updatedDuration: duration) }
     }
     
     /// 会话线路变更通知
@@ -189,12 +169,10 @@ extension PLVideoPlayer {
         
         switch AVAudioSession.InterruptionType(rawValue: .init(type)) {
         case .began?:
-            if !userPaused, state == .playing { pauseNoUser() }
+            if !userPaused, control == .playing { pauseNoUser() }
         case .ended?:
-            if !userPaused, state == .paused { play() }
-        case .none:
-            break
-        @unknown default:
+            if !userPaused, control == .pausing { play() }
+        default:
             break
         }
     }
@@ -204,18 +182,19 @@ extension PLVideoPlayer {
     
     /// 清理
     private func clear(_ isStop: Bool) {
-        ready = false
         player?.stop()
-        playingInfo = nil
+        // 重置缓冲进度
+        buffer = 0
+        // 重置加载状态
+        loading = .ended
         
         if isStop { VideoPlayer.removeAudioSession(in: audioSessionQueue) }
     }
     
     /// 错误
-    private func error() {
+    private func error(_ value: Swift.Error?) {
         clear(true)
-        loading = false
-        state = .error
+        state = .failure(value)
     }
 }
 
@@ -238,48 +217,46 @@ extension PLVideoPlayer: PLPlayerDelegate {
         case .statusPreparing:
             // 播放器正在准备当中
             print("播放器正在准备当中")
-            loading = true
+            loading = .began
             
         case .statusCaching:
             // 播放器正在缓存的状态
             print("缓存状态")
-            loading = true
+            loading = .began
             
         case .statusReady:
             print("准备完成")
-            loading = false
+            loading = .ended
             
         case .statusOpen:
             print("开始连接")
-            loading = false
+            loading = .ended
            
         case .statusPlaying:
             // 播放器正在播放的状态
             print("开始播放")
-            loading = false
+            loading = .ended
             
-            if !ready {
+            if case .prepare = self.state {
                 if isAutoPlay {
-                    self.playTimer?.fireDate = .init()
-                    self.userPaused = false
-                    self.state = .playing
+                    playTimer?.fireDate = .init()
+                    userPaused = false
+                    control = .playing
                     player.play()
                     
                 } else {
-                    self.userPaused = true
-                    self.state = .paused
+                    control = .pausing
+                    userPaused = true
                     player.pause()
                 }
-                ready = true
-                delegate { $0.videoPlayerReady(self) }
+                self.state = .playing
             }
             
         case .statusPaused:
             // 播放器暂停的状态
             print("暂停播放")
-            if !userPaused {
-                self.state = .paused
-            }
+            control = .pausing
+            
         case .statusError:
             // 播放器错误的状态
             print("播放错误")
@@ -287,63 +264,56 @@ extension PLVideoPlayer: PLPlayerDelegate {
             
         case .stateAutoReconnecting:
             // 播放器开始自动重连
-            loading = true
-            self.state = .playing
+            loading = .began
             
         case .statusCompleted:
-            loading = false
-            self.state = .finish
+            loading = .ended
+            self.state = .finished
             
         default: break
         }
     }
     
     func player(_ player: PLPlayer, stoppedWithError error: Error?) {
-        state = .error
+        self.error(error)
     }
     
     func player(_ player: PLPlayer, loadedTimeRange timeRange: CMTime) {
-        // 加载
-        guard let totalTime = totalTime else { return }
-        // 本次缓冲时间范围
-        let start = 0.0
-        // 缓冲总时长
-        let duration = timeRange.seconds
+        guard duration > 0 else { return }
         // 缓冲进度
-        let progress = (duration - start) / totalTime
+        let progress = timeRange.seconds / duration
         
         print(
             """
             ==========pl===========
             duration \(duration)\n
-            total \(totalTime)\n
             progress \(progress)\n
             """
         )
-        
+        buffer = progress
         delegate { $0.videoPlayer(self, updatedBuffer: progress) }
     }
     
     func player(_ player: PLPlayer, seekToCompleted isCompleted: Bool) {
+        loading = .ended
         // 恢复监听
         delegate { $0.videoPlayerSeekFinish(self) }
         seekCompletion?()
         seekCompletion = nil
-        loading = false
     }
     
     func playerWillBeginBackgroundTask(_ player: PLPlayer) {
         guard let _ = player.playerView else { return }
         
         playTimer?.fireDate = .distantFuture
-        if !userPaused, state == .playing { pauseNoUser() }
+        if !userPaused, control == .playing { pauseNoUser() }
     }
     
     func playerWillEndBackgroundTask(_ player: PLPlayer) {
         guard let _ = player.playerView else { return }
         
         playTimer?.fireDate = .init()
-        if !userPaused, state == .paused { play() }
+        if !userPaused, control == .pausing { play() }
     }
 }
 
@@ -356,23 +326,27 @@ extension PLVideoPlayer: VideoPlayerable {
     
     @discardableResult
     func prepare(url: URL) -> VideoPlayerView {
-
+        // 清理原有资源
         clear(false)
+        // 重置当前状态
+        loading = .began
+        state = .prepare
         
         guard
             let player = PLPlayer(url: url, option: PLPlayerOption.default()),
             let view = player.playerView else {
-            state = .error
+            state = .failure(.none)
             return VideoPlayerView(.init())
         }
         
         player.delegate = self
-        player.isBackgroundPlayEnable = true
+        player.isBackgroundPlayEnable = false
         player.loopPlay = isLoop
         player.playSpeed = rate
         player.setVolume(.init(volume))
         player.isMute = isMuted
         self.player = player
+        
         playerView = VideoPlayerView(view.layer)
         playerView.observe { (contentMode) in
             view.contentMode = contentMode
@@ -385,9 +359,6 @@ extension PLVideoPlayer: VideoPlayerable {
         
         playTimer?.fireDate = .init()
         
-        state = .stopped
-        loading = true
-        
         // 设置音频会话
         VideoPlayer.setupAudioSession(in: audioSessionQueue)
         
@@ -397,31 +368,31 @@ extension PLVideoPlayer: VideoPlayerable {
     }
     
     func play() {
-        guard ready else { return }
+        guard case .playing = state else { return }
         
         playTimer?.fireDate = .init()
+        control = .playing
         userPaused = false
-        state = .playing
         player?.resume()
     }
     
     func pause() {
-        guard ready else { return }
+        guard case .playing = state else { return }
         
+        control = .pausing
         userPaused = true
-        state = .paused
         player?.pause()
     }
     
     func stop() {
         clear(true)
-        loading = false
+        loading = .ended
         playTimer?.fireDate = .distantFuture
         state = .stopped
     }
     
     func seek(to time: TimeInterval, completion: @escaping (() -> Void)) {
-        guard ready else { return }
+        guard case .playing = state else { return }
         guard
             let player = player,
             player.status == .statusCaching ||
@@ -435,23 +406,23 @@ extension PLVideoPlayer: VideoPlayerable {
             return
         }
         
-        loading = true
-        player.seek(to: CMTimeMakeWithSeconds(time, preferredTimescale: 1))
+        loading = .began
+        player.seek(to: CMTimeMakeWithSeconds(time, preferredTimescale: 1000))
         seekCompletion = completion
     }
     
-    var currentTime: TimeInterval? {
-        guard let duration = player?.currentTime else { return nil }
+    var current: TimeInterval {
+        guard let duration = player?.currentTime else { return 0 }
         
         let time = duration.seconds
-        return time.isNaN ? nil : time
+        return time.isNaN ? 0 : time
     }
     
-    var totalTime: TimeInterval? {
-        guard let duration = player?.totalDuration else { return nil }
+    var duration: TimeInterval {
+        guard let duration = player?.totalDuration else { return 0 }
         
         let time = duration.seconds
-        return time.isNaN ? nil : time
+        return time.isNaN ? 0 : time
     }
     
     var view: VideoPlayerView {

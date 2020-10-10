@@ -21,42 +21,33 @@ class AVVideoPlayer: NSObject {
     static let shared = AVVideoPlayer()
     
     /// 当前URL
-    var url: URL? {
-        return currentUrl
-    }
+    private(set) var url: URL?
     
-    /// 加载状态
-    private(set) var loading: Bool = false {
-        didSet {
-            if loading {
-                delegate { $0.videoPlayerLoadingBegin(self) }
-            } else {
-                delegate { $0.videoPlayerLoadingEnd(self) }
-            }
-        }
-    }
     /// 播放状态
     private (set) var state: VideoPlayer.State = .stopped {
         didSet {
-            switch state {
-            case .playing:
-                delegate { $0.videoPlayerPlaying(self) }
-            case .paused:
-                delegate { $0.videoPlayerPaused(self) }
-            case .stopped:
-                delegate { $0.videoPlayerStopped(self) }
-            case .finish:
-                delegate { $0.videoPlayerFinish(self) }
-            case .error:
-                delegate { $0.videoPlayerError(self) }
-            }
+            delegate { $0.videoPlayerState(self, state: state) }
+        }
+    }
+    
+    /// 控制状态
+    private(set) var control: VideoPlayer.ControlState = .pausing {
+        didSet {
+            delegate { $0.videoPlayerControlState(self, state: control) }
+        }
+    }
+    
+    /// 加载状态
+    private(set) var loading: VideoPlayer.LoadingState = .ended {
+        didSet {
+            delegate { $0.videoPlayerLoadingState(self, state: loading) }
         }
     }
     
     /// 播放速率 0.5 - 2.0
     var rate: Double = 1.0 {
         didSet {
-            guard state == .playing else { return }
+            guard case .playing = state else { return }
             player.rate = .init(rate)
         }
     }
@@ -74,15 +65,6 @@ class AVVideoPlayer: NSObject {
     var isLoop: Bool = false
     /// 是否自动播放
     var isAutoPlay: Bool = true
-    /// 播放信息 (锁屏封面和远程控制)
-    var playingInfo: VideoPlayerInfo? {
-        didSet {
-            guard let playingInfo = playingInfo else { return }
-            
-            playingInfo.set(self)
-            add(delegate: playingInfo)
-        }
-    }
     /// 音频会话队列
     var audioSessionQueue: DispatchQueue = .audioSession
     
@@ -94,8 +76,6 @@ class AVVideoPlayer: NSObject {
     private var playerTimeObserver: Any?
     private var userPaused: Bool = false
     private var isSeeking: Bool = false
-    private var ready: Bool = false
-    private var currentUrl: URL?
     
     private var timeControlStatusObservation: NSKeyValueObservation?
     private var reasonForWaitingToPlayObservation: NSKeyValueObservation?
@@ -158,25 +138,18 @@ class AVVideoPlayer: NSObject {
 
 extension AVVideoPlayer {
     
-    /// 重置loading状态
-    private func resetLoading() {
-        guard loading else { return }
-        
-        loading = false
-    }
-    
     /// 错误
-    private func error() {
+    private func error(_ value: Swift.Error?) {
         clear(true)
-        resetLoading()
-        state = .error
+        state = .failure(value)
     }
     
     /// 清理
     private func clear(_ isStop: Bool) {
         guard let item = player.currentItem else { return }
         
-        ready = false
+        loading = .ended
+        
         player.pause()
         
         // 取消相关
@@ -189,9 +162,12 @@ extension AVVideoPlayer {
         
         // 移除item
         player.replaceCurrentItem(with: nil)
-        playingInfo = nil
-        currentUrl = nil
+        // 清空当前URL
+        url = nil
+        // 设置Seek状态
+        isSeeking = false
         
+        // 移除音频会话
         if isStop { VideoPlayer.removeAudioSession(in: audioSessionQueue) }
     }
     
@@ -202,26 +178,30 @@ extension AVVideoPlayer {
         playerTimeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) {
             [weak self] (time) in
             guard let self = self else { return }
+            guard !self.isSeeking else { return }
             
-            let time = CMTimeGetSeconds(time)
-            self.delegate{ $0.videoPlayer(self, updatedCurrent: time) }
+            self.delegate{ $0.videoPlayer(self, updatedCurrent: CMTimeGetSeconds(time)) }
         }
         
         timeControlStatusObservation = player.observe(\.timeControlStatus) {
             [weak self] (observer, change) in
             guard let self = self else { return }
+            guard case .playing = self.state else { return }
             
             switch observer.timeControlStatus {
             case .paused:
-                self.state = .paused
+                self.control = .pausing
                 self.userPaused = false
                 
             case .playing:
-                self.state = .playing
-                self.userPaused = false
                 // 校准播放速率
-                guard observer.rate != .init(self.rate) else { return }
-                observer.rate = .init(self.rate)
+                if observer.rate == .init(self.rate) {
+                    self.control = .playing
+                    self.userPaused = false
+                    
+                } else {
+                    observer.rate = .init(self.rate)
+                }
                 
             default:
                 break
@@ -237,7 +217,7 @@ extension AVVideoPlayer {
             switch observer.reasonForWaitingToPlay {
             case .toMinimizeStalls?:
                 print("toMinimizeStalls")
-                self.loading = true
+                self.loading = .began
                 
             case .evaluatingBufferingRate?:
                 print("evaluatingBufferingRate")
@@ -246,7 +226,7 @@ extension AVVideoPlayer {
                 print("noItemToPlay")
                 
             default:
-                self.loading = false
+                self.loading = .ended
             }
         }
     }
@@ -275,21 +255,18 @@ extension AVVideoPlayer {
                 
                 switch observer.status {
                 case .readyToPlay:
-                    if self.isAutoPlay {
-                        self.player.playImmediately(atRate: .init(self.rate))
-                        
-                    } else {
-                        self.player.pause()
-                        self.userPaused = true
-                    }
-                    self.ready = true
-                    self.delegate { $0.videoPlayerReady(self) }
+                    self.state = .playing
                     self.itemStatusObservation = nil
                     
+                    if self.isAutoPlay {
+                        self.play()
+                        
+                    } else {
+                        self.pause()
+                    }
+                    
                 case .failed:
-                    // 异常
-                    print(item.error?.localizedDescription ?? "无法获取错误信息")
-                    self.error()
+                    self.error(item.error)
                     
                 default:
                     break
@@ -301,10 +278,8 @@ extension AVVideoPlayer {
             let observation = item.observe(\.duration) {
                 [weak self] (observer, change) in
                 guard let self = self else { return }
-                // 获取总时长
-                let time = observer.duration.seconds
-                self.delegate { $0.videoPlayer(self, updatedTotal: time) }
-                self.itemDurationObservation = nil
+                
+                self.delegate { $0.videoPlayer(self, updatedDuration: observer.duration.seconds) }
             }
             itemDurationObservation = observation
         }
@@ -312,17 +287,8 @@ extension AVVideoPlayer {
             let observation = item.observe(\.loadedTimeRanges) {
                 [weak self] (observer, change) in
                 guard let self = self else { return }
-                guard let timeRange = observer.loadedTimeRanges.first?.timeRangeValue else { return }
-                guard let totalTime = self.totalTime else { return }
-                // 本次缓冲时间范围
-                let start = timeRange.start.seconds
-                let duration = timeRange.duration.seconds
-                // 缓冲总时长
-                let totalBuffer = start + duration
-                // 缓冲进度
-                let progress = totalBuffer / totalTime
                 
-                self.delegate { $0.videoPlayer(self, updatedBuffer: progress) }
+                self.delegate { $0.videoPlayer(self, updatedBuffer: self.buffer) }
             }
             itemLoadedTimeRangesObservation = observation
         }
@@ -331,7 +297,7 @@ extension AVVideoPlayer {
                 [weak self] (observer, change) in
                 guard let self = self else { return }
                 
-                self.loading = !observer.isPlaybackLikelyToKeepUp
+                self.loading = !observer.isPlaybackLikelyToKeepUp ? .began : .ended
             }
             itemPlaybackLikelyToKeepUpObservation = observation
         }
@@ -349,19 +315,29 @@ extension AVVideoPlayer {
     /// 播放结束通知
     @objc
     private func itemDidPlayToEndTime(_ notification: NSNotification) {
-        guard notification.object as? AVPlayerItem == player.currentItem else {
+        guard let item = notification.object as? AVPlayerItem, item == player.currentItem else {
             return
         }
-        
-        seek(to: 0.0) { [weak self] in
+        // 取消Seeks
+        item.cancelPendingSeeks()
+        // 设置Seek状态
+        isSeeking = true
+        // Seek到起始位置
+        item.seek(to: .zero) { [weak self] (result) in
             guard let self = self else { return }
+            // 设置Seek状态
+            self.isSeeking = false
+            // 判断循环模式
             if self.isLoop {
-                self.delegate { $0.videoPlayer(self, updatedCurrent: 0.0) }
+                // 继续播放
+                self.player.playImmediately(atRate: .init(self.rate))
                 
             } else {
+                // 暂停播放
                 self.player.pause()
                 self.userPaused = true
-                self.state = .finish
+                // 设置完成状态
+                self.state = .finished
             }
         }
     }
@@ -372,7 +348,10 @@ extension AVVideoPlayer {
         guard notification.object as? AVPlayerItem == player.currentItem else {
             return
         }
-        if state == .playing { play() }
+        guard case .playing = state else {
+            return
+        }
+        play()
     }
     
     /// 会话线路变更通知
@@ -406,12 +385,10 @@ extension AVVideoPlayer {
         
         switch AVAudioSession.InterruptionType(rawValue: .init(type)) {
         case .began?:
-            if !userPaused, state == .playing { player.pause() }
+            if !userPaused, control == .playing { player.pause() }
         case .ended?:
-            if !userPaused, state == .paused { play() }
-        case .none:
-            break
-        @unknown default:
+            if !userPaused, control == .pausing { play() }
+        default:
             break
         }
     }
@@ -419,7 +396,7 @@ extension AVVideoPlayer {
     @objc
     private func willEnterForeground(_ notification: NSNotification) {
         guard let item = player.currentItem else { return }
-        guard !userPaused, state == .paused else { return }
+        guard !userPaused, control == .pausing else { return }
         
         var observation: NSKeyValueObservation?
         observation = item.observe(\.status) { [weak self] (observer, change) in
@@ -431,7 +408,7 @@ extension AVVideoPlayer {
                 self.play()
                 
             case .failed:
-                self.error()
+                self.error(item.error)
                 
             default:
                 break
@@ -444,10 +421,15 @@ extension AVVideoPlayer: VideoPlayerable {
     
     @discardableResult
     func prepare(url: URL) -> VideoPlayerView {
-        
+        // 清理原有资源
         clear(false)
+        // 重置当前状态
+        loading = .began
+        state = .prepare
         
-        currentUrl = url
+        // 设置当前URL
+        self.url = url
+        // 初始化播放器
         let item = AVPlayerItem(url: url)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         // 预缓冲时长 默认60秒
@@ -462,15 +444,13 @@ extension AVVideoPlayer: VideoPlayerable {
         
         player.automaticallyWaitsToMinimizeStalling = false
         
+        // 添加监听
         addObserver()
         addObserver(item: item)
         
         let layer = AVPlayerLayer(player: player)
         layer.masksToBounds = true
         self.playerLayer = layer
-        
-        loading = true
-        state = .stopped
         
         // 构建播放视图
         playerView = VideoPlayerView(layer)
@@ -510,15 +490,21 @@ extension AVVideoPlayer: VideoPlayerable {
     }
     
     func play() {
-        guard ready else { return }
-        guard !isSeeking else { return }
-        
-        player.playImmediately(atRate: .init(rate))
+        switch state {
+        case .playing where !isSeeking:
+            player.playImmediately(atRate: .init(rate))
+            
+        case .finished:
+            state = .playing
+            player.playImmediately(atRate: .init(rate))
+            
+        default:
+            break
+        }
     }
     
     func pause() {
-        guard ready else { return }
-        guard !isSeeking else { return }
+        guard case .playing = state, !isSeeking else { return }
         
         player.pause()
         userPaused = true
@@ -526,50 +512,67 @@ extension AVVideoPlayer: VideoPlayerable {
     
     func stop() {
         clear(true)
-        resetLoading()
         state = .stopped
     }
     
     func seek(to time: TimeInterval, completion: @escaping (() -> Void)) {
         guard
-            ready,
+            !isSeeking,
             let item = player.currentItem,
+            let range = item.seekableTimeRanges.first?.timeRangeValue,
             player.status == .readyToPlay,
-            !isSeeking else {
+            case .playing = state else {
             return
         }
         
+        // 记录当前状态
         let player = self.player
-        let isPlaying = state == .playing
-        if isPlaying { player.pause() }
+        let isPlaying = control == .playing
+        if isPlaying {
+            player.pause()
+        }
         
+        // 设置Seek状态
         isSeeking = true
         
-        let changeTime = CMTimeMakeWithSeconds(time, preferredTimescale: 1)
+        // 限制可跳转时间范围
+        let changeTime = CMTimeMakeWithSeconds(
+            min(max(time, range.start.seconds), range.duration.seconds),
+            preferredTimescale: range.duration.timescale
+        )
         item.seek(to: changeTime) { [weak self] (finished) in
             guard let self = self else { return }
-            guard finished, player == self.player else { return }
-            
+            guard finished else { return }
+            // 设置Seek状态
+            self.isSeeking = false
+            // 恢复播放
             if isPlaying {
                 player.playImmediately(atRate: .init(self.rate))
             }
             
-            self.isSeeking = false
             self.delegate { $0.videoPlayerSeekFinish(self) }
             completion()
         }
     }
     
-    var currentTime: TimeInterval? {
-        guard let item = player.currentItem else { return nil }
+    var current: TimeInterval {
+        guard let item = player.currentItem else { return 0 }
         let time = CMTimeGetSeconds(item.currentTime())
-        return time.isNaN ? nil : time
+        return time.isNaN ? 0 : time
     }
     
-    var totalTime: TimeInterval? {
-        guard let item = player.currentItem else { return nil }
+    var duration: TimeInterval {
+        guard let item = player.currentItem else { return 0 }
         let time = CMTimeGetSeconds(item.duration)
-        return time.isNaN ? nil : time
+        return time.isNaN ? 0 : time
+    }
+    
+    var buffer: Double {
+        guard let item = player.currentItem else { return 0 }
+        guard let range = item.loadedTimeRanges.first?.timeRangeValue else { return 0 }
+        guard duration > 0 else { return 0 }
+        let buffer = range.start.seconds + range.duration.seconds
+        return buffer / duration
     }
     
     var view: VideoPlayerView {

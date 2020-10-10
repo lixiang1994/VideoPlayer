@@ -131,34 +131,51 @@ extension SimplePlayerViewController {
 
 extension SimplePlayerViewController: VideoPlayerDelagete {
     
-    func videoPlayerReady(_ player: VideoPlayerable) {
-        guard
-            AVPictureInPictureController.isPictureInPictureSupported(),
-            let layer = player.view.playerLayer as? AVPlayerLayer else {
-            return
+    func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
+        switch state {
+        case .playing:
+            guard
+                AVPictureInPictureController.isPictureInPictureSupported(),
+                let layer = player.view.playerLayer as? AVPlayerLayer else {
+                return
+            }
+            
+            pictureController = AVPictureInPictureController(playerLayer: layer)
+            pictureController?.delegate = self
+            
+            if #available(iOS 14.0, *) {
+                navigationItem.rightBarButtonItem = UIBarButtonItem(
+                    image: AVPictureInPictureController.pictureInPictureButtonStartImage,
+                    style: .plain,
+                    target: self,
+                    action: #selector(startPictureAction)
+                )
+            }
+            
+        case .finished:
+            guard AVPictureInPictureController.isPictureInPictureSupported() else {
+                return
+            }
+            guard let controller = pictureController else {
+                return
+            }
+            guard controller.isPictureInPictureActive else {
+                return
+            }
+            controller.stopPictureInPicture()
+        
+        case .stopped, .failure:
+            guard AVPictureInPictureController.isPictureInPictureSupported() else {
+                return
+            }
+            
+            pictureController = nil
+            
+            navigationItem.rightBarButtonItem = nil
+            
+        default:
+            break
         }
-        
-        pictureController = AVPictureInPictureController(playerLayer: layer)
-        pictureController?.delegate = self
-        
-        if #available(iOS 14.0, *) {
-            navigationItem.rightBarButtonItem = UIBarButtonItem(
-                image: AVPictureInPictureController.pictureInPictureButtonStartImage,
-                style: .plain,
-                target: self,
-                action: #selector(startPictureAction)
-            )
-        }
-    }
-    
-    func videoPlayerStopped(_ player: VideoPlayerable) {
-        guard AVPictureInPictureController.isPictureInPictureSupported() else {
-            return
-        }
-        
-        pictureController = nil
-        
-        navigationItem.rightBarButtonItem = nil
     }
 }
 

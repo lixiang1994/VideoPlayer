@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
 s.name         = "VideoPlayer"
-s.version      = "3.0.3"
+s.version      = "4.0.0"
 s.summary      = "视频播放器"
 
 s.homepage     = "https://github.com/lixiang1994/VideoPlayer"
@@ -18,7 +18,7 @@ s.requires_arc = true
 
 s.frameworks = 'UIKit', 'Foundation', 'AVFoundation', 'MediaPlayer'
 
-s.swift_version = '5.0'
+s.swift_version = '5.2'
 
 s.default_subspec = 'Core', 'AVPlayer'
 

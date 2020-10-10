@@ -27,7 +27,7 @@ protocol VideoPlayerControlViewable: NSObjectProtocol {
     /// 设置总播放时长
     ///
     /// - Parameter time: 时间(秒)
-    func set(total time: TimeInterval)
+    func set(duration time: TimeInterval)
     
     /// 加载状态
     func loadingBegin()
@@ -302,7 +302,7 @@ extension VideoPlayerControlView: VideoPlayerControlViewable {
         currentLabel.text = timeToHMS(time: time)
     }
     
-    func set(total time: TimeInterval) {
+    func set(duration time: TimeInterval) {
         sliderView.maximumValue = Float(time)
         totalLabel.text = timeToHMS(time: time)
     }
