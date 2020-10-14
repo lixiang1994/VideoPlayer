@@ -255,23 +255,15 @@ extension AVVideoPlayer {
                 
                 switch observer.status {
                 case .readyToPlay:
+                    self.state = .playing
                     self.itemStatusObservation = nil
                     
                     if self.isAutoPlay {
                         self.player.playImmediately(atRate: .init(self.rate))
-                        DispatchQueue.main.async {
-                            self.state = .playing
-                            self.control = .playing
-                            self.userPaused = false
-                        }
                         
                     } else {
                         self.player.pause()
-                        DispatchQueue.main.async {
-                            self.state = .playing
-                            self.control = .pausing
-                            self.userPaused = true
-                        }
+                        self.userPaused = true
                     }
                     
                 case .failed:
