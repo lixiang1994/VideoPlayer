@@ -259,15 +259,19 @@ extension AVVideoPlayer {
                     
                     if self.isAutoPlay {
                         self.player.playImmediately(atRate: .init(self.rate))
-                        self.state = .playing
-                        self.control = .playing
-                        self.userPaused = false
+                        DispatchQueue.main.async {
+                            self.state = .playing
+                            self.control = .playing
+                            self.userPaused = false
+                        }
                         
                     } else {
                         self.player.pause()
-                        self.state = .playing
-                        self.control = .pausing
-                        self.userPaused = true
+                        DispatchQueue.main.async {
+                            self.state = .playing
+                            self.control = .pausing
+                            self.userPaused = true
+                        }
                     }
                     
                 case .failed:
