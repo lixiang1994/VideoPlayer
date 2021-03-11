@@ -134,7 +134,7 @@ extension SimplePlayerViewController {
     }
 }
 
-extension SimplePlayerViewController: VideoPlayerDelagete {
+extension SimplePlayerViewController: VideoPlayerDelegate {
     
     func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
         switch state {

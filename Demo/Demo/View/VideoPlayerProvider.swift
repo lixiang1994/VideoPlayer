@@ -64,7 +64,7 @@ extension VideoPlayerProvider {
     }
 }
 
-extension VideoPlayerProvider: VideoPlayerDelagete {
+extension VideoPlayerProvider: VideoPlayerDelegate {
     
     func videoPlayerLoadingState(_ player: VideoPlayerable, state: VideoPlayer.LoadingState) {
         switch state {

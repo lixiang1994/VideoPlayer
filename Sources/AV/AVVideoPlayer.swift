@@ -68,7 +68,7 @@ class AVVideoPlayer: NSObject {
     /// 音频会话队列
     var audioSessionQueue: DispatchQueue = .audioSession
     
-    var delegates: [VideoPlayerDelageteBridge<AnyObject>] = []
+    var delegates: [VideoPlayerDelegateBridge<AnyObject>] = []
     private lazy var player = AVPlayer()
     private lazy var playerLayer = AVPlayerLayer(player: player)
     private lazy var playerView: VideoPlayerView = VideoPlayerView(.init())
@@ -431,7 +431,10 @@ extension AVVideoPlayer: VideoPlayerable {
         // 设置当前URL
         self.url = url
         // 初始化播放器
-        let item = AVPlayerItem(url: url)
+        let asset = AVURLAsset(url: url)
+        asset.resourceLoader.setDelegate(AVVideoResourceLoader(), queue: .main)
+        
+        let item = AVPlayerItem.init(asset: asset)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         // 预缓冲时长 默认60秒
         item.preferredForwardBufferDuration = 60.0
@@ -581,9 +584,9 @@ extension AVVideoPlayer: VideoPlayerable {
     }
 }
 
-extension AVVideoPlayer: VideoPlayerDelagetes {
+extension AVVideoPlayer: VideoPlayerDelegates {
     
-    typealias Element = VideoPlayerDelagete
+    typealias Element = VideoPlayerDelegate
 }
 
 fileprivate extension AVPlayerItem {

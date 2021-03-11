@@ -1,5 +1,5 @@
 //
-//  VideoPlayerDelagetes.swift
+//  VideoPlayerDelegates.swift
 //  ┌─┐      ┌───────┐ ┌───────┐
 //  │ │      │ ┌─────┘ │ ┌─────┘
 //  │ │      │ └─────┐ │ └─────┐
@@ -9,14 +9,14 @@
 //
 import Foundation
 
-public protocol VideoPlayerDelagetes: NSObjectProtocol {
+public protocol VideoPlayerDelegates: NSObjectProtocol {
     
     associatedtype Element
     
-    var delegates: [VideoPlayerDelageteBridge<AnyObject>] { get set }
+    var delegates: [VideoPlayerDelegateBridge<AnyObject>] { get set }
 }
 
-extension VideoPlayerDelagetes {
+extension VideoPlayerDelegates {
     
     public func add(delegate: Element) {
         guard !delegates.contains(where: { $0.object === delegate as AnyObject }) else {
@@ -41,7 +41,7 @@ extension VideoPlayerDelagetes {
     }
 }
 
-public class VideoPlayerDelageteBridge<I: AnyObject> {
+public class VideoPlayerDelegateBridge<I: AnyObject> {
     weak var object: I?
     init(_ object: I?) {
         self.object = object

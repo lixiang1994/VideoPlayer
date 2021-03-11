@@ -10,7 +10,7 @@
 import MediaPlayer.MPNowPlayingInfoCenter
 import MediaPlayer.MPRemoteCommandCenter
 
-open class VideoPlayerRemote: VideoPlayerDelagete {
+open class VideoPlayerRemote: VideoPlayerDelegate {
     
     public let player: VideoPlayerable
     

@@ -1,5 +1,5 @@
 //
-//  VideoPlayerDelagete.swift
+//  VideoPlayerDelegate.swift
 //  ┌─┐      ┌───────┐ ┌───────┐
 //  │ │      │ ┌─────┘ │ ┌─────┘
 //  │ │      │ └─────┐ │ └─────┐
@@ -9,7 +9,7 @@
 //
 import Foundation
 
-public protocol VideoPlayerDelagete: AnyObject {
+public protocol VideoPlayerDelegate: AnyObject {
     /// 加载状态
     func videoPlayerLoadingState(_ player: VideoPlayerable, state: VideoPlayer.LoadingState)
     /// 控制状态
@@ -27,7 +27,7 @@ public protocol VideoPlayerDelagete: AnyObject {
     func videoPlayerSeekFinish(_ player: VideoPlayerable)
 }
 
-public extension VideoPlayerDelagete {
+public extension VideoPlayerDelegate {
     
     func videoPlayerLoadingState(_ player: VideoPlayerable, state: VideoPlayer.LoadingState) { }
     func videoPlayerControlState(_ player: VideoPlayerable, state: VideoPlayer.ControlState) { }

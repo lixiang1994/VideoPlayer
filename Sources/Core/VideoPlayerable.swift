@@ -55,7 +55,7 @@ public protocol VideoPlayerable: NSObjectProtocol {
     var audioSessionQueue: DispatchQueue { get set }
     
     /// 添加委托
-    func add(delegate: VideoPlayerDelagete)
+    func add(delegate: VideoPlayerDelegate)
     /// 移除委托
-    func remove(delegate: VideoPlayerDelagete)
+    func remove(delegate: VideoPlayerDelegate)
 }

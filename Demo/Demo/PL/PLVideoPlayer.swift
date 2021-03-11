@@ -74,7 +74,7 @@ class PLVideoPlayer: NSObject {
     /// 音频会话队列
     var audioSessionQueue: DispatchQueue = .audioSession
     
-    var delegates: [VideoPlayerDelageteBridge<AnyObject>] = []
+    var delegates: [VideoPlayerDelegateBridge<AnyObject>] = []
     private var playTimer: Timer?
     private var player: PLPlayer?
     private var playerView = VideoPlayerView(.init())
@@ -317,9 +317,9 @@ extension PLVideoPlayer: PLPlayerDelegate {
     }
 }
 
-extension PLVideoPlayer: VideoPlayerDelagetes {
+extension PLVideoPlayer: VideoPlayerDelegates {
     
-    typealias Element = VideoPlayerDelagete
+    typealias Element = VideoPlayerDelegate
 }
 
 extension PLVideoPlayer: VideoPlayerable {
