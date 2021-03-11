@@ -132,7 +132,11 @@ extension VideoPlayerRemote {
     @objc
     private func playCommandAction(_ event: MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
         switch player.state {
-        case .playing, .finished where player.control == .pausing:
+        case .playing where player.control == .pausing:
+            player.play()
+            return .success
+            
+        case .finished where player.control == .pausing:
             player.play()
             return .success
             
