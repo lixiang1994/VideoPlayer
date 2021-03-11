@@ -72,6 +72,7 @@ class AVVideoPlayer: NSObject {
     private lazy var player = AVPlayer()
     private lazy var playerLayer = AVPlayerLayer(player: player)
     private lazy var playerView: VideoPlayerView = VideoPlayerView(.init())
+    private lazy var playerOutput = AVPlayerItemVideoOutput()
     
     private var playerTimeObserver: Any?
     private var userPaused: Bool = false
@@ -155,6 +156,7 @@ extension AVVideoPlayer {
         // 取消相关
         item.cancelPendingSeeks()
         item.asset.cancelLoading()
+        item.remove(playerOutput)
         
         // 移除监听
         removeObserver()
@@ -440,6 +442,10 @@ extension AVVideoPlayer: VideoPlayerable {
         item.preferredForwardBufferDuration = 60.0
         // 解决0.5倍数播放回音问题
         item.audioTimePitchAlgorithm = .timeDomain
+        
+        playerOutput = AVPlayerItemVideoOutput()
+        item.add(playerOutput)
+        
         player = AVPlayer(playerItem: item)
         player.actionAtItemEnd = .pause
         player.rate = .init(rate)
