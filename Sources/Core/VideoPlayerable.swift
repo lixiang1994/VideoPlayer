@@ -58,4 +58,6 @@ public protocol VideoPlayerable: NSObjectProtocol {
     func add(delegate: VideoPlayerDelegate)
     /// 移除委托
     func remove(delegate: VideoPlayerDelegate)
+    /// 截图 获取当前播放的画面截图
+    func screenshot(completion: @escaping (UIImage?) -> Void)
 }

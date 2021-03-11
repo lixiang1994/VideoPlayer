@@ -428,6 +428,16 @@ extension PLVideoPlayer: VideoPlayerable {
     var view: VideoPlayerView {
         return playerView
     }
+    
+    func screenshot(completion: @escaping (UIImage?) -> Void) {
+        guard let player = player else {
+            completion(.none)
+            return
+        }
+        player.getScreenShot(completionHandler: { (image) in
+            completion(image)
+        })
+    }
 }
 
 #endif

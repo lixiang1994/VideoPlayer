@@ -582,6 +582,43 @@ extension AVVideoPlayer: VideoPlayerable {
     var view: VideoPlayerView {
         return playerView
     }
+    
+    func screenshot(completion: (UIImage?) -> Void) {
+        guard let item = player.currentItem else {
+            completion(.none)
+            return
+        }
+        
+        let output = AVPlayerItemVideoOutput()
+        item.add(output)
+        
+        guard
+            let pixelBuffer = output.copyPixelBuffer(
+                forItemTime: item.currentTime(),
+                itemTimeForDisplay: nil
+            ) else {
+            completion(.none)
+            return
+        }
+        
+        let ciimage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        guard
+            let cgimage = context.createCGImage(
+                ciimage,
+                from: .init(
+                    x: 0,
+                    y: 0,
+                    width: CVPixelBufferGetWidth(pixelBuffer),
+                height: CVPixelBufferGetHeight(pixelBuffer)
+            )
+        ) else {
+            completion(.none)
+            return
+        }
+        item.remove(output)
+        completion(.init(cgImage: cgimage))
+    }
 }
 
 extension AVVideoPlayer: VideoPlayerDelegates {
