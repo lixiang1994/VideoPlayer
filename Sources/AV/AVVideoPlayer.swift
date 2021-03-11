@@ -594,12 +594,8 @@ extension AVVideoPlayer: VideoPlayerable {
             completion(.none)
             return
         }
-        
-        let output = AVPlayerItemVideoOutput()
-        item.add(output)
-        
         guard
-            let pixelBuffer = output.copyPixelBuffer(
+            let pixelBuffer = playerOutput.copyPixelBuffer(
                 forItemTime: item.currentTime(),
                 itemTimeForDisplay: nil
             ) else {
@@ -622,7 +618,6 @@ extension AVVideoPlayer: VideoPlayerable {
             completion(.none)
             return
         }
-        item.remove(output)
         completion(.init(cgImage: cgimage))
     }
 }
