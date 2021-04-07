@@ -434,12 +434,12 @@ extension AVVideoPlayer: VideoPlayerable {
         self.url = url
         // 初始化播放器
         let asset = AVURLAsset(url: url)
-        asset.resourceLoader.setDelegate(AVVideoResourceLoader(), queue: .main)
+//        asset.resourceLoader.setDelegate(AVVideoResourceLoader(), queue: .main)
         
         let item = AVPlayerItem.init(asset: asset)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
-        // 预缓冲时长 默认60秒
-        item.preferredForwardBufferDuration = 60.0
+        // 预缓冲时长 默认
+        item.preferredForwardBufferDuration = 0
         // 解决0.5倍数播放回音问题
         item.audioTimePitchAlgorithm = .timeDomain
         
@@ -550,7 +550,8 @@ extension AVVideoPlayer: VideoPlayerable {
             min(max(time, range.start.seconds), range.duration.seconds),
             preferredTimescale: range.duration.timescale
         )
-        item.seek(to: changeTime) { [weak self] (finished) in
+        item.seek(to: changeTime, toleranceBefore: .zero, toleranceAfter: .zero) {
+            [weak self] (finished) in
             guard let self = self else { return }
             guard finished else { return }
             // 设置Seek状态
