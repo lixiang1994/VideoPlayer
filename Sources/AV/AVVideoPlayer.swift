@@ -403,6 +403,7 @@ extension AVVideoPlayer {
         
         var observation: NSKeyValueObservation?
         observation = item.observe(\.status) { [weak self] (observer, change) in
+            observation?.invalidate()
             observation = nil
             guard let self = self else { return }
             
@@ -423,7 +424,7 @@ extension AVVideoPlayer {
 extension AVVideoPlayer: VideoPlayerable {
     
     @discardableResult
-    func prepare(url: URL) -> VideoPlayerView {
+    func prepare(url: VideoPlayerURLAsset) -> VideoPlayerView {
         // 清理原有资源
         clear(false)
         // 重置当前状态
@@ -431,9 +432,16 @@ extension AVVideoPlayer: VideoPlayerable {
         state = .prepare
         
         // 设置当前URL
-        self.url = url
+        self.url = url.value
         // 初始化播放器
-        let asset = AVURLAsset(url: url)
+        let asset: AVURLAsset
+        if let temp = url as? AVURLAsset {
+            asset = temp
+            
+        } else {
+            asset = AVURLAsset(url: url.value)
+        }
+        
 //        asset.resourceLoader.setDelegate(AVVideoResourceLoader(), queue: .main)
         
         let item = AVPlayerItem.init(asset: asset)
@@ -632,5 +640,12 @@ fileprivate extension AVPlayerItem {
     
     func setAudioTrack(_ isEnabled: Bool) {
         tracks.filter { $0.assetTrack?.mediaType == .some(.audio) }.forEach { $0.isEnabled = isEnabled }
+    }
+}
+
+extension AVURLAsset: VideoPlayerURLAsset {
+    
+    public var value: URL {
+        return url
     }
 }

@@ -325,7 +325,7 @@ extension PLVideoPlayer: VideoPlayerDelegates {
 extension PLVideoPlayer: VideoPlayerable {
     
     @discardableResult
-    func prepare(url: URL) -> VideoPlayerView {
+    func prepare(url: VideoPlayerURLAsset) -> VideoPlayerView {
         // 清理原有资源
         clear(false)
         // 重置当前状态
@@ -333,7 +333,7 @@ extension PLVideoPlayer: VideoPlayerable {
         state = .prepare
         
         guard
-            let player = PLPlayer(url: url, option: PLPlayerOption.default()),
+            let player = PLPlayer(url: url.value, option: PLPlayerOption.default()),
             let view = player.playerView else {
             state = .failure(.none)
             return VideoPlayerView(.init())

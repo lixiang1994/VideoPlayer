@@ -9,11 +9,15 @@
 //
 import Foundation
 
+public protocol VideoPlayerURLAsset {
+    var value: URL { get }
+}
+
 public protocol VideoPlayerable: NSObjectProtocol {
     
     /// 准备播放器 准备完成后自动播放
     @discardableResult
-    func prepare(url: URL) -> VideoPlayerView
+    func prepare(url: VideoPlayerURLAsset) -> VideoPlayerView
     /// 播放
     func play()
     /// 暂停
@@ -60,4 +64,11 @@ public protocol VideoPlayerable: NSObjectProtocol {
     func remove(delegate: VideoPlayerDelegate)
     /// 截图 获取当前播放的画面截图
     func screenshot(completion: @escaping (UIImage?) -> Void)
+}
+
+extension URL: VideoPlayerURLAsset {
+    
+    public var value: URL {
+        return self
+    }
 }
