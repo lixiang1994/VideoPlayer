@@ -297,7 +297,7 @@ extension PLVideoPlayer: PLPlayerDelegate {
     func player(_ player: PLPlayer, seekToCompleted isCompleted: Bool) {
         loading = .ended
         // 恢复监听
-        delegate { $0.videoPlayerSeekFinish(self) }
+        delegate { $0.videoPlayerSeekEnded(self) }
         seekCompletion?()
         seekCompletion = nil
     }
@@ -405,7 +405,7 @@ extension PLVideoPlayer: VideoPlayerable {
             completion()
             return
         }
-        
+        self.delegate { $0.videoPlayerSeekBegan(self) }
         loading = .began
         player.seek(to: CMTimeMakeWithSeconds(time, preferredTimescale: 1000))
         seekCompletion = completion

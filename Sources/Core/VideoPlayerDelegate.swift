@@ -23,8 +23,10 @@ public protocol VideoPlayerDelegate: AnyObject {
     func videoPlayer(_ player: VideoPlayerable, updatedDuration time: Double)
     /// 更新当前时间 (秒)
     func videoPlayer(_ player: VideoPlayerable, updatedCurrent time: Double)
-    /// 跳转完成
-    func videoPlayerSeekFinish(_ player: VideoPlayerable)
+    /// 跳转开始
+    func videoPlayerSeekBegan(_ player: VideoPlayerable)
+    /// 跳转结束
+    func videoPlayerSeekEnded(_ player: VideoPlayerable)
 }
 
 public extension VideoPlayerDelegate {
@@ -36,5 +38,6 @@ public extension VideoPlayerDelegate {
     func videoPlayer(_ player: VideoPlayerable, updatedBuffer progress: Double) { }
     func videoPlayer(_ player: VideoPlayerable, updatedDuration time: Double) { }
     func videoPlayer(_ player: VideoPlayerable, updatedCurrent time: Double) { }
-    func videoPlayerSeekFinish(_ player: VideoPlayerable) { }
+    func videoPlayerSeekBegan(_ player: VideoPlayerable) { }
+    func videoPlayerSeekEnded(_ player: VideoPlayerable) { }
 }

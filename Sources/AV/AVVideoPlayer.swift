@@ -47,7 +47,7 @@ class AVVideoPlayer: NSObject {
     /// 播放速率 0.5 - 2.0
     var rate: Double = 1.0 {
         didSet {
-            guard case .playing = state else { return }
+            guard case .playing = state, case .playing = control else { return }
             player.rate = .init(rate)
         }
     }
@@ -261,7 +261,7 @@ extension AVVideoPlayer {
                     self.itemStatusObservation = nil
                     
                     if self.isAutoPlay {
-                        self.player.playImmediately(atRate: .init(self.rate))
+                        self.player.rate = .init(self.rate)
                         
                     } else {
                         self.player.pause()
@@ -333,7 +333,7 @@ extension AVVideoPlayer {
             // 判断循环模式
             if self.isLoop {
                 // 继续播放
-                self.player.playImmediately(atRate: .init(self.rate))
+                self.player.rate = .init(self.rate)
                 
             } else {
                 // 暂停播放
@@ -399,25 +399,9 @@ extension AVVideoPlayer {
     @objc
     private func willEnterForeground(_ notification: NSNotification) {
         guard let item = player.currentItem else { return }
+        guard case .playing = state else { return }
         guard !userPaused, control == .pausing else { return }
-        
-        var observation: NSKeyValueObservation?
-        observation = item.observe(\.status) { [weak self] (observer, change) in
-            observation?.invalidate()
-            observation = nil
-            guard let self = self else { return }
-            
-            switch observer.status {
-            case .readyToPlay:
-                self.play()
-                
-            case .failed:
-                self.error(item.error)
-                
-            default:
-                break
-            }
-        }
+        play()
     }
 }
 
@@ -510,11 +494,11 @@ extension AVVideoPlayer: VideoPlayerable {
     func play() {
         switch state {
         case .playing where !isSeeking:
-            player.playImmediately(atRate: .init(rate))
+            player.rate = .init(rate)
             
         case .finished:
             state = .playing
-            player.playImmediately(atRate: .init(rate))
+            player.rate = .init(rate)
             
         default:
             break
@@ -553,6 +537,8 @@ extension AVVideoPlayer: VideoPlayerable {
         // 设置Seek状态
         isSeeking = true
         
+        self.delegate { $0.videoPlayerSeekBegan(self) }
+        
         // 限制可跳转时间范围
         let changeTime = CMTimeMakeWithSeconds(
             min(max(time, range.start.seconds), range.duration.seconds),
@@ -566,10 +552,10 @@ extension AVVideoPlayer: VideoPlayerable {
             self.isSeeking = false
             // 恢复播放
             if isPlaying {
-                player.playImmediately(atRate: .init(self.rate))
+                player.rate = .init(self.rate)
             }
             
-            self.delegate { $0.videoPlayerSeekFinish(self) }
+            self.delegate { $0.videoPlayerSeekEnded(self) }
             completion()
         }
     }

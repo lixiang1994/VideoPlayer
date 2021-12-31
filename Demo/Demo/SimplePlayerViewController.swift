@@ -145,7 +145,11 @@ extension SimplePlayerViewController: VideoPlayerDelegate {
                 return
             }
             
-            pictureController = AVPictureInPictureController(playerLayer: layer)
+            if #available(iOS 15.0, *) {
+                pictureController = AVPictureInPictureController(contentSource: .init(playerLayer: layer))
+            } else {
+                pictureController = AVPictureInPictureController(playerLayer: layer)
+            }
             pictureController?.delegate = self
             
             if #available(iOS 14.0, *) {
@@ -225,6 +229,9 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
     
     func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         print("已经停止PictureInPicture的代理方法")
+        if #available(iOS 15.0, *) {
+            pictureInPictureController.invalidatePlaybackState()
+        }
         // 处理画中画关闭
         defer { isPictureClose = true }
         guard isPictureClose else { return }

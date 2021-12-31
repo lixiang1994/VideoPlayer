@@ -132,8 +132,12 @@ extension VideoPlayerProvider: VideoPlayerDelegate {
         controlView?.set(current: time)
     }
     
-    func videoPlayerSeekFinish(_ player: VideoPlayerable) {
-        
+    func videoPlayerSeekBegan(_ player: VideoPlayerable) {
+        // 可以做一些跳转Toast什么的.
+    }
+    
+    func videoPlayerSeekEnded(_ player: VideoPlayerable) {
+        // 跳转结束 隐藏Toast什么的.
     }
 }
 
