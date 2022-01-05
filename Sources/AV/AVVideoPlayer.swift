@@ -398,7 +398,7 @@ extension AVVideoPlayer {
     
     @objc
     private func willEnterForeground(_ notification: NSNotification) {
-        guard let item = player.currentItem else { return }
+        guard player.currentItem != .none else { return }
         guard case .playing = state else { return }
         guard !userPaused, control == .pausing else { return }
         play()
