@@ -19,11 +19,6 @@ class SimplePlayerViewController: UIViewController {
     private lazy var playerView = UIView()
     private lazy var statusView = UIView()
     
-    /// 画中画控制器
-    private var pictureController: AVPictureInPictureController?
-    /// 画中画是否关闭 (用于区分点击了画中画"X"按钮, 还是收起按钮)
-    private var isPictureClose = true
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -34,7 +29,13 @@ class SimplePlayerViewController: UIViewController {
         view.addSubview(playerView)
         
         playerView.snp.makeConstraints { (make) in
-            make.top.left.right.equalToSuperview()
+            if #available(iOS 11.0, *) {
+                make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+                
+            } else {
+                make.top.equalTo(topLayoutGuide.snp.bottom)
+            }
+            make.left.right.equalToSuperview()
             make.height.equalTo(playerView.snp.width).multipliedBy(9.0 / 16.0)
         }
         
@@ -119,38 +120,43 @@ class SimplePlayerViewController: UIViewController {
         controller.type = type
         return controller
     }
+    
+    deinit {
+        // 当前页面关闭 则关闭画中画
+        PictureInPicture.shared.close()
+    }
 }
 
 extension SimplePlayerViewController {
     
     @objc
     private func startPictureAction() {
-        pictureController?.startPictureInPicture()
+        PictureInPicture.shared.start()
     }
     
     @objc
     private func stopPictureAction() {
-        pictureController?.stopPictureInPicture()
+        PictureInPicture.shared.stop()
     }
 }
 
 extension SimplePlayerViewController: VideoPlayerDelegate {
     
+    func videoPlayerControlState(_ player: VideoPlayerable, state: VideoPlayer.ControlState) {
+        PictureInPicture.shared.invalidatePlaybackState()
+    }
+    
     func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
         switch state {
         case .playing:
             guard
-                AVPictureInPictureController.isPictureInPictureSupported(),
+                PictureInPicture.shared.isSuspended,
                 let layer = player.view.playerLayer as? AVPlayerLayer else {
                 return
             }
-            
-            if #available(iOS 15.0, *) {
-                pictureController = AVPictureInPictureController(contentSource: .init(playerLayer: layer))
-            } else {
-                pictureController = AVPictureInPictureController(playerLayer: layer)
-            }
-            pictureController?.delegate = self
+            // 播放中时 设置画中画
+            PictureInPicture.shared.setup(player: layer)
+            PictureInPicture.shared.delegate = self
             
             if #available(iOS 14.0, *) {
                 navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -162,11 +168,8 @@ extension SimplePlayerViewController: VideoPlayerDelegate {
             }
             
         case .finished, .stopped, .failure:
-            guard AVPictureInPictureController.isPictureInPictureSupported() else {
-                return
-            }
-            
-            pictureController = nil
+            // 不在播放中时 则关闭画中画
+            PictureInPicture.shared.close()
             
             navigationItem.rightBarButtonItem = nil
             
@@ -176,25 +179,10 @@ extension SimplePlayerViewController: VideoPlayerDelegate {
     }
 }
 
-/*
- 
- 全局画中画注意点
-
- 通过一个全局变量持有画中画控制器，可以在pictureInPictureControllerWillStartPictureInPicture持有，pictureInPictureControllerDidStopPictureInPicture释放；
- 有可能不是点画中画按钮，而是从其它途径来打开当前画中画控制器，可以在viewWillAppear 进行判断并关闭；
- 已有画中画的情况下开启新的画中画，需要等完全关闭完再开启新的，防止有未知的错误出现，因为关闭画中画是有过程的；
- 如果创建AVPictureInPictureController并同时开启画中画功能，有可能会失效，出现这种情况延迟开启画中画功能即可。
- 
- */
-
 extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
     
-    func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("将要开始PictureInPicture的代理方法")
-    }
-    
     func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("已经开始PictureInPicture的代理方法")
+        // 已经开始PictureInPicture
         // 隐藏视图
         statusView.isHidden = true
         
@@ -208,12 +196,8 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
         }
     }
     
-    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
-        print("启动PictureInPicture失败的代理方法")
-    }
-    
     func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("将要停止PictureInPicture的代理方法")
+        // 将要停止PictureInPicture的代理方法
         // 显示视图
         statusView.isHidden = false
         
@@ -228,23 +212,8 @@ extension SimplePlayerViewController: AVPictureInPictureControllerDelegate {
     }
     
     func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("已经停止PictureInPicture的代理方法")
-        if #available(iOS 15.0, *) {
-            pictureInPictureController.invalidatePlaybackState()
-        }
-        // 处理画中画关闭
-        defer { isPictureClose = true }
-        guard isPictureClose else { return }
+        // 已经停止PictureInPicture的代理方法
         // 停止播放器
         provider?.player?.stop()
-    }
-    
-    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
-        //此方法执行在pictureInPictureControllerWillStopPictureInPicture代理方法之后，在pictureInPictureControllerDidStopPictureInPicture执行之前。 但是点击“X”移除画中画时，不执行此方法。
-        print("PictureInPicture停止之前恢复用户界面")
-        // 设置非画中画关闭
-        isPictureClose = false
-        // 完成回调
-        completionHandler(true)
     }
 }

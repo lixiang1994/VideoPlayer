@@ -426,9 +426,11 @@ extension AVVideoPlayer: VideoPlayerable {
             asset = AVURLAsset(url: url.value)
         }
         
-//        asset.resourceLoader.setDelegate(AVVideoResourceLoader(), queue: .main)
+//        if asset.resourceLoader.delegate == nil {
+//            asset.resourceLoader.setDelegate(AVAssetResourceLoader(), queue: .main)
+//        }
         
-        let item = AVPlayerItem.init(asset: asset)
+        let item = AVPlayerItem(asset: asset)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         // 预缓冲时长 默认
         item.preferredForwardBufferDuration = 0
