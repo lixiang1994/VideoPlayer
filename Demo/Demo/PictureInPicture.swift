@@ -12,26 +12,19 @@ class PictureInPicture: NSObject {
     
     weak var delegate: AVPictureInPictureControllerDelegate?
     
-    static let shared = PictureInPicture()
-    
-    var playerLayer: AVPlayerLayer? {
-        if #available(iOS 15.0, *) {
-            return pictureController?.contentSource?.playerLayer
-            
-        } else {
-            return pictureController?.playerLayer
-        }
+    var isSuspended: Bool {
+        AVPictureInPictureController.isPictureInPictureSupported()
     }
-    
-    var isSuspended: Bool { AVPictureInPictureController.isPictureInPictureSupported() }
-    var isActive: Bool { pictureController?.isPictureInPictureActive ?? false }
+    var isActive: Bool {
+        pictureController?.isPictureInPictureActive ?? false
+    }
     
     /// 画中画控制器
     private var pictureController: AVPictureInPictureController?
     /// 画中画是否关闭 (用于区分点击了画中画"X"按钮, 还是收起按钮)
     private var isPictureClose = true
     
-    weak var player: AVPlayerLayer?
+    private(set) weak var player: AVPlayerLayer?
     
     override init() {
         super.init()

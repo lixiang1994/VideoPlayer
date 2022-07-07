@@ -19,6 +19,8 @@ class SimplePlayerViewController: UIViewController {
     private lazy var playerView = UIView()
     private lazy var statusView = UIView()
     
+    private let pip = PictureInPicture()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -120,43 +122,38 @@ class SimplePlayerViewController: UIViewController {
         controller.type = type
         return controller
     }
-    
-    deinit {
-        // 当前页面关闭 则关闭画中画
-        PictureInPicture.shared.close()
-    }
 }
 
 extension SimplePlayerViewController {
     
     @objc
     private func startPictureAction() {
-        PictureInPicture.shared.start()
+        pip.start()
     }
     
     @objc
     private func stopPictureAction() {
-        PictureInPicture.shared.stop()
+        pip.stop()
     }
 }
 
 extension SimplePlayerViewController: VideoPlayerDelegate {
     
     func videoPlayerControlState(_ player: VideoPlayerable, state: VideoPlayer.ControlState) {
-        PictureInPicture.shared.invalidatePlaybackState()
+        pip.invalidatePlaybackState()
     }
     
     func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
         switch state {
         case .playing:
             guard
-                PictureInPicture.shared.isSuspended,
+                pip.isSuspended,
                 let layer = player.view.playerLayer as? AVPlayerLayer else {
                 return
             }
             // 播放中时 设置画中画
-            PictureInPicture.shared.setup(player: layer)
-            PictureInPicture.shared.delegate = self
+            pip.setup(player: layer)
+            pip.delegate = self
             
             if #available(iOS 14.0, *) {
                 navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -169,7 +166,7 @@ extension SimplePlayerViewController: VideoPlayerDelegate {
             
         case .finished, .stopped, .failure:
             // 不在播放中时 则关闭画中画
-            PictureInPicture.shared.close()
+            pip.close()
             
             navigationItem.rightBarButtonItem = nil
             
