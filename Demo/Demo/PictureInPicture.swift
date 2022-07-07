@@ -43,6 +43,7 @@ class PictureInPicture: NSObject {
         ) { [weak self] sender in
             guard let self = self else { return }
             guard self.isSuspended, self.isActive else { return }
+            // 从后台回来 延迟1秒自动停止画中画
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self.pictureController?.stopPictureInPicture()
             }
