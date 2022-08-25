@@ -15,20 +15,20 @@ public protocol VideoPlayerURLAsset {
 
 public protocol VideoPlayerable: NSObjectProtocol {
     
-    /// 准备播放器 准备完成后自动播放
+    /// 准备
     @discardableResult
-    func prepare(url: VideoPlayerURLAsset) -> VideoPlayerView
+    func prepare(resource: VideoPlayerURLAsset) -> VideoPlayerView
     /// 播放
     func play()
     /// 暂停
     func pause()
     /// 停止
     func stop()
-    /// 快速定位到指定播放时间点 (多次调用 以第一次为准)
-    func seek(to time: TimeInterval, completion: @escaping (()->Void))
+    /// 快速定位到指定播放时间点 (多次调用 以最后一次为准)
+    func seek(to target: VideoPlayer.Seek)
     
-    /// 当前URL
-    var url: URL? { get }
+    /// 资源
+    var resource: VideoPlayerURLAsset? { get }
     /// 播放器当前状态
     var state: VideoPlayer.State { get }
     /// 播放器控制状态
@@ -53,10 +53,9 @@ public protocol VideoPlayerable: NSObjectProtocol {
     var volume: Double { get set }
     /// 是否循环播放  默认: false
     var isLoop: Bool { get set }
-    /// 是否自动播放  默认: true
-    var isAutoPlay: Bool { get set }
-    /// 设置音频会话队列  默认: .audioSession
-    var audioSessionQueue: DispatchQueue { get set }
+    
+    /// 播放配置
+    var configuration: VideoPlayerConfiguration { get }
     
     /// 添加委托
     func add(delegate: VideoPlayerDelegate)

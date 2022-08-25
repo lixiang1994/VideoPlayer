@@ -46,7 +46,7 @@ protocol VideoPlayerControlViewDelegate: NSObjectProtocol {
     /// 控制暂停
     func controlPause()
     /// 控制跳转指定时间
-    func controlSeek(time: Double, completion: @escaping (()->Void))
+    func controlSeek(time: Double)
 }
 
 class VideoPlayerControlView: UIView {
@@ -217,14 +217,14 @@ extension VideoPlayerControlView {
     @objc
     private func sliderTouchEnd(_ sender: UISlider) {
         isDraging = false
-        delegate?.controlSeek(time: Double(sender.value)) { }
+        delegate?.controlSeek(time: Double(sender.value))
         autoHide()
     }
     
     @objc
     private func sliderTouchCancel(_ sender: UISlider) {
         isDraging = false
-        delegate?.controlSeek(time: Double(sender.value)) { }
+        delegate?.controlSeek(time: Double(sender.value))
         autoHide()
     }
     

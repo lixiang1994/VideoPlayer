@@ -111,7 +111,7 @@ extension VideoPlayerProvider: VideoPlayerDelegate {
             errorView?.isHidden = true
             coverView?.isHidden = true
             
-        case .failure(let error):
+        case .failed(let error):
             controlView?.isHidden = true
             finishView?.isHidden = true
             errorView?.isHidden = false
@@ -151,8 +151,8 @@ extension VideoPlayerProvider: VideoPlayerControlViewDelegate {
         player?.pause()
     }
     
-    func controlSeek(time: Double, completion: @escaping (()->Void)) {
-        player?.seek(to: time, completion: completion)
+    func controlSeek(time: Double) {
+        player?.seek(to: .init(time: time))
     }
 }
 

@@ -58,7 +58,6 @@ class SimplePlayerViewController: UIViewController {
         }
         // 简单设置
         player.isLoop = false
-        player.isAutoPlay = true
         player.add(delegate: self)
         
         // 初始化相关视图
@@ -100,7 +99,7 @@ class SimplePlayerViewController: UIViewController {
         ) { [weak self] in
             guard let self = self else { return }
             
-            let view = player.prepare(url: url)
+            let view = player.prepare(resource: url)
             view.backgroundColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1)
             self.playerView.subviews.forEach({ $0.removeFromSuperview() })
             self.playerView.addSubview(view)
@@ -164,7 +163,7 @@ extension SimplePlayerViewController: VideoPlayerDelegate {
                 )
             }
             
-        case .finished, .stopped, .failure:
+        case .finished, .stopped, .failed:
             // 不在播放中时 则关闭画中画
             pip.close()
             

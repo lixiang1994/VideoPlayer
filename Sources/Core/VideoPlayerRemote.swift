@@ -10,18 +10,22 @@
 import MediaPlayer.MPNowPlayingInfoCenter
 import MediaPlayer.MPRemoteCommandCenter
 
-open class VideoPlayerRemote: VideoPlayerDelegate {
+open class VideoPlayerRemoteControl: NSObject {
     
     public let player: VideoPlayerable
     
     public init(_ player: VideoPlayerable) {
         self.player = player
-        setup()
+        super.init()
+        // 添加播放器代理
+        player.add(delegate: self)
+        
+        setupCommand()
     }
     
     /// 设置远程控制
-    open func setup() {
-        clean()
+    open func setupCommand() {
+        cleanCommand()
         
         let remote = MPRemoteCommandCenter.shared()
         remote.playCommand.addTarget(self, action: #selector(playCommandAction))
@@ -31,7 +35,7 @@ open class VideoPlayerRemote: VideoPlayerDelegate {
     }
     
     /// 清理远程控制
-    open func clean() {
+    open func cleanCommand() {
         let remote = MPRemoteCommandCenter.shared()
         remote.playCommand.removeTarget(self)
         remote.pauseCommand.removeTarget(self)
@@ -47,8 +51,12 @@ open class VideoPlayerRemote: VideoPlayerDelegate {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
     
+    public func cleanPlayingInfo() {
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+    
     deinit {
-        clean()
+        cleanCommand()
     }
     
     /// 设置播放信息
@@ -74,7 +82,8 @@ open class VideoPlayerRemote: VideoPlayerDelegate {
                 boundsSize: thumb.size,
                 requestHandler: { (size) -> UIImage in
                     return thumb
-            })
+                }
+            )
             info[MPMediaItemPropertyArtwork] = artwork
             // 媒体类型
             info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.video.rawValue
@@ -87,47 +96,6 @@ open class VideoPlayerRemote: VideoPlayerDelegate {
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
-    
-    public func videoPlayerLoadingState(_ player: VideoPlayerable, state: VideoPlayer.LoadingState) {
-        updatePlayingInfo()
-    }
-    
-    public func videoPlayerControlState(_ player: VideoPlayerable, state: VideoPlayer.ControlState) {
-        updatePlayingInfo()
-    }
-    
-    public func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
-        switch state {
-        case .prepare:
-            clean()
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-            
-        case .playing:
-            setup()
-            
-        case .stopped:
-            clean()
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-            
-        case .finished:
-            updatePlayingInfo()
-            
-        case .failure:
-            clean()
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        }
-    }
-    
-    public func videoPlayer(_ player: VideoPlayerable, updatedDuration time: Double) {
-        updatePlayingInfo()
-    }
-    
-    public func videoPlayerSeekFinish(_ player: VideoPlayerable) {
-        updatePlayingInfo()
-    }
-}
-
-extension VideoPlayerRemote {
 
     @objc
     private func playCommandAction(_ event: MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
@@ -152,5 +120,49 @@ extension VideoPlayerRemote {
         
         player.pause()
         return .success
+    }
+}
+
+extension VideoPlayerRemoteControl: VideoPlayerDelegate {
+    
+    public func videoPlayerLoadingState(_ player: VideoPlayerable, state: VideoPlayer.LoadingState) {
+        updatePlayingInfo()
+    }
+    
+    public func videoPlayerControlState(_ player: VideoPlayerable, state: VideoPlayer.ControlState) {
+        updatePlayingInfo()
+    }
+    
+    public func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
+        switch state {
+        case .prepare:
+            cleanPlayingInfo()
+            
+        case .playing:
+            setupCommand()
+            
+        case .stopped:
+            cleanCommand()
+            cleanPlayingInfo()
+            
+        case .finished:
+            updatePlayingInfo()
+            
+        case .failed:
+            cleanCommand()
+            cleanPlayingInfo()
+        }
+    }
+    
+    public func videoPlayer(_ player: VideoPlayerable, updatedCurrent time: Double) {
+        updatePlayingInfo()
+    }
+    
+    public func videoPlayer(_ player: VideoPlayerable, updatedDuration time: Double) {
+        updatePlayingInfo()
+    }
+    
+    public func videoPlayer(_ player: VideoPlayerable, seekEnded: VideoPlayer.Seek) {
+        updatePlayingInfo()
     }
 }

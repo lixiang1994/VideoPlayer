@@ -16,15 +16,16 @@ import PLPlayerKit
 
 extension VideoPlayer {
     
-    static let pl: Builder = .init { PLVideoPlayer() }
+    static let pl: Builder = .init { PLVideoPlayer($0) }
 }
 
 class PLVideoPlayer: NSObject {
     
-    static let shared = PLVideoPlayer()
-    
     /// 当前URL
-    private(set) var url: URL?
+    private(set) var resource: VideoPlayerURLAsset?
+    
+    /// 配置
+    private(set) var configuration: VideoPlayerConfiguration
     
     /// 播放状态
     private (set) var state: VideoPlayer.State = .stopped {
@@ -69,19 +70,22 @@ class PLVideoPlayer: NSObject {
             player?.loopPlay = isLoop
         }
     }
-    /// 是否自动播放
-    var isAutoPlay: Bool = true
-    /// 音频会话队列
-    var audioSessionQueue: DispatchQueue = .audioSession
     
     var delegates: [VideoPlayerDelegateBridge<AnyObject>] = []
+    
     private var playTimer: Timer?
     private var player: PLPlayer?
     private var playerView = VideoPlayerView(.init())
-    private var userPaused: Bool = false
-    private var seekCompletion: (() -> Void)?
     
-    override init() {
+    /// 当前时间校准器 用于解决时间精度偏差问题.
+    private var currentTimeCalibrator: TimeInterval?
+    /// 跳转意图 例如当非playing状态时 如果调用了seek(to:)  记录状态 在playing时设置跳转
+    private var intendedToSeek: VideoPlayer.Seek?
+    /// 播放意图 例如当seeking时如果调用了play() 或者 pasue() 记录状态 在seeking结束时设置对应状态
+    private var intendedToPlay: Bool = false
+    
+    init(_ configuration: VideoPlayerConfiguration) {
+        self.configuration = configuration
         super.init()
         
         setup()
@@ -124,7 +128,6 @@ class PLVideoPlayer: NSObject {
     
     private func pauseNoUser() {
         player?.pause()
-        userPaused = false
     }
     
     deinit {
@@ -159,19 +162,21 @@ extension PLVideoPlayer {
     }
     
     /// 会话中断通知
-    @objc func sessionInterruption(_ notification: NSNotification) {
+    @objc
+    private func sessionInterruption(_ notification: Notification) {
         guard
             let info = notification.userInfo,
             let type = info[AVAudioSessionInterruptionTypeKey] as? Int else {
             return
         }
-        guard let _ = player else { return }
         
         switch AVAudioSession.InterruptionType(rawValue: .init(type)) {
-        case .began?:
-            if !userPaused, control == .playing { pauseNoUser() }
-        case .ended?:
-            if !userPaused, control == .pausing { play() }
+        case .began? where intendedToPlay:
+            pauseNoUser()
+            
+        case .ended? where intendedToPlay:
+            play()
+            
         default:
             break
         }
@@ -181,20 +186,24 @@ extension PLVideoPlayer {
 extension PLVideoPlayer {
     
     /// 清理
-    private func clear(_ isStop: Bool) {
+    private func clear() {
         player?.stop()
+        playTimer?.fireDate = .distantFuture
         // 重置缓冲进度
         buffer = 0
         // 重置加载状态
         loading = .ended
-        
-        if isStop { VideoPlayer.removeAudioSession(in: audioSessionQueue) }
+        // 清空资源
+        resource = nil
+        // 清理意图
+        intendedToSeek = nil
+        intendedToPlay = false
     }
     
     /// 错误
     private func error(_ value: Swift.Error?) {
-        clear(true)
-        state = .failure(value)
+        clear()
+        state = .failed(value)
     }
 }
 
@@ -238,18 +247,21 @@ extension PLVideoPlayer: PLPlayerDelegate {
             loading = .ended
             
             if case .prepare = self.state {
-                if isAutoPlay {
-                    playTimer?.fireDate = .init()
-                    userPaused = false
-                    control = .playing
-                    player.play()
+                // 查看是否有需要的Seek
+                if let seek = self.intendedToSeek {
+                    player.pause()
+                    self.seek(to: seek)
                     
                 } else {
-                    control = .pausing
-                    userPaused = true
-                    player.pause()
+                    self.state = .playing
+                    
+                    if self.intendedToPlay {
+                        self.play()
+                        
+                    } else {
+                        self.pause()
+                    }
                 }
-                self.state = .playing
             }
             
         case .statusPaused:
@@ -260,7 +272,7 @@ extension PLVideoPlayer: PLPlayerDelegate {
         case .statusError:
             // 播放器错误的状态
             print("播放错误")
-            player.play()
+            error(nil)
             
         case .stateAutoReconnecting:
             // 播放器开始自动重连
@@ -295,25 +307,47 @@ extension PLVideoPlayer: PLPlayerDelegate {
     }
     
     func player(_ player: PLPlayer, seekToCompleted isCompleted: Bool) {
+        guard let target = intendedToSeek else {
+            return
+        }
+        // 停止加载
         loading = .ended
-        // 恢复监听
-        delegate { $0.videoPlayerSeekEnded(self) }
-        seekCompletion?()
-        seekCompletion = nil
+        // 清空跳转意图
+        intendedToSeek = nil
+        // 设置当前时间校准器
+        currentTimeCalibrator = target.time
+        // 根据播放意图继续播放
+        if isCompleted, intendedToPlay {
+            play()
+        }
+        // 代理回调 结束跳转
+        delegate { $0.videoPlayer(self, seekEnded: target) }
+        
+        // 如果是准备阶段 则切换到播放状态
+        if case .prepare = self.state {
+            self.state = .playing
+            
+            if self.intendedToPlay {
+                self.play()
+                
+            } else {
+                self.pause()
+            }
+        }
     }
     
     func playerWillBeginBackgroundTask(_ player: PLPlayer) {
         guard let _ = player.playerView else { return }
         
         playTimer?.fireDate = .distantFuture
-        if !userPaused, control == .playing { pauseNoUser() }
+        if case .playing = state, intendedToPlay { pauseNoUser() }
     }
     
     func playerWillEndBackgroundTask(_ player: PLPlayer) {
         guard let _ = player.playerView else { return }
         
         playTimer?.fireDate = .init()
-        if !userPaused, control == .pausing { play() }
+        if case .playing = state, intendedToPlay { play() }
     }
 }
 
@@ -325,17 +359,17 @@ extension PLVideoPlayer: VideoPlayerDelegates {
 extension PLVideoPlayer: VideoPlayerable {
     
     @discardableResult
-    func prepare(url: VideoPlayerURLAsset) -> VideoPlayerView {
+    func prepare(resource: VideoPlayerURLAsset) -> VideoPlayerView {
         // 清理原有资源
-        clear(false)
+        clear()
         // 重置当前状态
         loading = .began
         state = .prepare
         
         guard
-            let player = PLPlayer(url: url.value, option: PLPlayerOption.default()),
+            let player = PLPlayer(url: resource.value, option: PLPlayerOption.default()),
             let view = player.playerView else {
-            state = .failure(.none)
+            state = .failed(.none)
             return VideoPlayerView(.init())
         }
         
@@ -359,62 +393,87 @@ extension PLVideoPlayer: VideoPlayerable {
         
         playTimer?.fireDate = .init()
         
-        // 设置音频会话
-        VideoPlayer.setupAudioSession(in: audioSessionQueue)
-        
         player.play()
+        
+        // 设置初始播放意图
+        intendedToPlay = configuration.isAutoplay
         
         return playerView
     }
     
     func play() {
-        guard case .playing = state else { return }
-        
-        playTimer?.fireDate = .init()
-        control = .playing
-        userPaused = false
-        player?.resume()
+        switch state {
+        case .prepare:
+            intendedToPlay = true
+            
+        case .playing where intendedToSeek != nil:
+            intendedToPlay = true
+            
+        case .playing where intendedToSeek == nil:
+            intendedToPlay = true
+            player?.resume()
+            control = .playing
+            playTimer?.fireDate = .init()
+            
+        case .finished:
+            state = .playing
+            intendedToPlay = true
+            // Seek到起始位置
+            seek(to: .init(time: .zero))
+            
+        default:
+            break
+        }
     }
     
     func pause() {
-        guard case .playing = state else { return }
-        
+        intendedToPlay = false
         control = .pausing
-        userPaused = true
         player?.pause()
     }
     
     func stop() {
-        clear(true)
-        loading = .ended
-        playTimer?.fireDate = .distantFuture
+        clear()
         state = .stopped
     }
     
-    func seek(to time: TimeInterval, completion: @escaping (() -> Void)) {
-        guard case .playing = state else { return }
+    func seek(to target: VideoPlayer.Seek) {
         guard
             let player = player,
             player.status == .statusCaching ||
             player.status == .statusPlaying ||
-            player.status == .statusPaused else {
-            completion()
+            player.status == .statusPaused,
+            case .playing = state else {
+            // 设置跳转意图
+            intendedToSeek = target
             return
         }
-        guard seekCompletion == nil else {
-            completion()
-            return
-        }
-        self.delegate { $0.videoPlayerSeekBegan(self) }
+        // 设置跳转意图
+        intendedToSeek = target
+        // 暂停当前播放
+        player.pause()
+        // 开始加载中
         loading = .began
-        player.seek(to: CMTimeMakeWithSeconds(time, preferredTimescale: 1000))
-        seekCompletion = completion
+        // 代理回调 当前时间为目标时间
+        delegate { $0.videoPlayer(self, updatedCurrent: target.time) }
+        // 代理回调 开始跳转
+        delegate { $0.videoPlayer(self, seekBegan: target) }
+        // 开始Seek
+        player.seek(to: CMTimeMakeWithSeconds(target.time, preferredTimescale: 1000))
     }
     
     var current: TimeInterval {
         guard let duration = player?.currentTime else { return 0 }
-        
         let time = duration.seconds
+        // 如果有跳转意图 则返回跳转的目标时间
+        if let seek = intendedToSeek {
+            return seek.time
+        }
+        // 当前时间校准器 如果大于 当前时间, 则返回校准时间, 否则清空校准器 返回当前时间.
+        if let temp = currentTimeCalibrator, temp > time {
+            return temp
+        }
+        currentTimeCalibrator = nil
         return time.isNaN ? 0 : time
     }
     
