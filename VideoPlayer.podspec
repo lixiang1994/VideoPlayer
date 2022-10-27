@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
 s.name         = "VideoPlayer"
-s.version      = "5.0.0"
+s.version      = "5.1.0"
 s.summary      = "视频播放器"
 
 s.homepage     = "https://github.com/lixiang1994/VideoPlayer"
