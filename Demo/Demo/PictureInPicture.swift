@@ -55,6 +55,10 @@ class PictureInPicture: NSObject {
             pictureController = AVPictureInPictureController(playerLayer: player)
         }
         
+        if #available(iOS 14.2, *) {
+            pictureController?.canStartPictureInPictureAutomaticallyFromInline = true
+        }
+        
         pictureController?.delegate = self
     }
     
