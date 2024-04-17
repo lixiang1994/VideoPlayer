@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
 s.name         = "VideoPlayer"
-s.version      = "5.2.0"
+s.version      = "5.2.1"
 s.summary      = "视频播放器"
 
 s.homepage     = "https://github.com/lixiang1994/VideoPlayer"
@@ -32,10 +32,9 @@ sub.dependency 'VideoPlayer/Core'
 sub.source_files = 'Sources/AV/*.swift'
 end
 
-  s.subspec 'Privacy' do |ss|
-      ss.resource_bundles = {
-        "Privacy" => 'Sources/PrivacyInfo.xcprivacy'
-      }
-  end
-
+s.subspec 'Privacy' do |ss|
+    ss.resource_bundles = {
+        s.name => 'Sources/PrivacyInfo.xcprivacy'
+    }
+end
 end
