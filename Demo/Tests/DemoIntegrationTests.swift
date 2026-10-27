@@ -5,6 +5,93 @@ import AVKit
 
 /// 通过页面实际控件验证资源身份、异步准备和界面选项，不只验证播放器底层接口。
 final class DemoIntegrationTests: PlaybackTestCase {
+    /// 诊断页必须保留列表和返回按钮；真实退出时清理资源，不能只显示一个无法返回的导航根页面。
+    func testDiagnosticsPreservesNavigationAndStopsOnReturn() throws {
+        for existingNavigation in [false, true] {
+            let window = UIWindow(frame: UIScreen.main.bounds)
+            window.windowScene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+            let original = existingNavigation
+                ? UIStoryboard(name: "Main", bundle: .main).instantiateInitialViewController() as? UINavigationController
+                : nil
+            window.rootViewController = original
+            let diagnostics = VideoDeviceDiagnostics(window: window, requestsPictureInPicture: false)
+            defer { window.isHidden = true; window.rootViewController = nil }
+            let navigation = try XCTUnwrap(window.rootViewController as? UINavigationController)
+            if let original = original { XCTAssertTrue(navigation === original) }
+            XCTAssertTrue(navigation.viewControllers.first is ViewController)
+            let page = try XCTUnwrap(navigation.topViewController as? SimplePlayerViewController)
+            let player = try XCTUnwrap(page.player)
+            defer { player.stop() }
+            eventually("诊断视频应实际播放", timeout: 15) { player.current > 0.3 }
+            let trace = XCTAttachment(string: "existingNavigation=\(existingNavigation), state=\(player.state), control=\(player.control), loading=\(player.loading), current=\(player.current), app=\(UIApplication.shared.applicationState.rawValue), PiP=\(page.isPictureInPictureActive)")
+            trace.lifetime = .keepAlways
+            add(trace)
+            pump(1)
+            XCTAssertTrue(window.rootViewController === navigation)
+            XCTAssertFalse(navigation.isNavigationBarHidden)
+            XCTAssertEqual(navigation.viewControllers.count, 2)
+            XCTAssertNotNil(navigation.navigationBar.backItem)
+            XCTAssertFalse(page.navigationItem.hidesBackButton)
+            navigation.popViewController(animated: false)
+            pump(0.2)
+            XCTAssertTrue(navigation.topViewController is ViewController)
+            XCTAssertNil(player.resource)
+            XCTAssertFalse(page.isPictureInPictureActive)
+            withExtendedLifetime(diagnostics) {}
+        }
+    }
+
+    /// 本地与 HTTP 文件都用媒体时钟验证倍速，暂停期间的目标和实际 AVPlayer 状态分别检查。
+    func testPageRateTargetAndMediaClockForLocalAndHTTP() throws {
+        let server = try VideoHTTPServer(data: Data(contentsOf: audio))
+        defer { server.stop() }
+        eventually("本机 HTTP 服务应就绪") { server.port != nil }
+        for url in [audio, server.url("video.mp4")] {
+            let page = SimplePlayerViewController.instance(2)
+            page.loadViewIfNeeded()
+            page.preparePlayback(url: url)
+            let player = try XCTUnwrap(page.player)
+            defer { player.stop() }
+            eventually("视频应实际播放") { player.current > 0.3 }
+            let layer = try XCTUnwrap(player.view.playerLayer as? AVPlayerLayer)
+            let avPlayer = try XCTUnwrap(layer.player)
+            let item = try XCTUnwrap(avPlayer.currentItem)
+            let rates: UISegmentedControl = try control("video.rate", in: page.view)
+            let label: UILabel = try control("video.diagnostics", in: page.view)
+            player.pause()
+            rates.selectedSegmentIndex = 2
+            rates.sendActions(for: .valueChanged)
+            XCTAssertTrue(label.text?.contains("目标 1.5×") == true)
+            XCTAssertTrue(label.text?.contains("已暂停") == true)
+            XCTAssertEqual(avPlayer.rate, 0)
+            let position = avPlayer.currentTime().seconds
+            pump(0.2)
+            XCTAssertEqual(avPlayer.currentTime().seconds, position, accuracy: 0.02)
+            player.play()
+            for (index, target) in [(2, 1.5), (3, 2.0)] {
+                rates.selectedSegmentIndex = index
+                rates.sendActions(for: .valueChanged)
+                eventually("底层应执行所选倍率") { avPlayer.timeControlStatus == .playing && abs(Double(avPlayer.rate) - target) < 0.01 }
+                // 避开起播边界；采样期间不 seek、不切资源、不允许缓冲或暂停。
+                pump(0.1)
+                let mediaStart = avPlayer.currentTime().seconds
+                let clockStart = ProcessInfo.processInfo.systemUptime
+                pump(0.4)
+                let measured = (avPlayer.currentTime().seconds - mediaStart) / (ProcessInfo.processInfo.systemUptime - clockStart)
+                XCTAssertEqual(avPlayer.timeControlStatus, .playing)
+                XCTAssertEqual(player.loading, .ended)
+                XCTAssertTrue(avPlayer.currentItem === item)
+                XCTAssertEqual(measured, target, accuracy: 0.25)
+                let measurement = XCTAttachment(string: "\(url.isFileURL ? "local" : "HTTP") MP4: target=\(target), AVPlayer.rate=\(avPlayer.rate), media/uptime=\(measured)")
+                measurement.lifetime = .keepAlways
+                add(measurement)
+            }
+            player.stop()
+            XCTAssertTrue(label.text?.contains("已停止") == true)
+        }
+        XCTAssertGreaterThan(server.requests, 0)
+    }
+
     /// 默认网络案例是已知 HLS；未播放时就应明确禁用 mix，进度刷新不能覆盖兼容提示。
     func testNetworkHLSExplainsUnsupportedMix() throws {
         let page = SimplePlayerViewController.instance(0)

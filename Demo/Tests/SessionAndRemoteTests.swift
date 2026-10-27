@@ -139,6 +139,26 @@ final class SessionAndRemoteTests: PlaybackTestCase {
         remote.cleanPlayingInfo()
     }
     
+    /// 播放/暂停期间替换元数据必须立即带上当前进度与速率，不能等下一次周期回调。
+    func testReplacingNowPlayingMetadataPreservesClockAndRate() {
+        prepare()
+        let remote = VideoPlayerRemoteControl(engine)
+        defer { remote.cleanPlayingInfo() }
+        engine.rate = 1.5
+        engine.play()
+        eventually("媒体应实际推进") { self.engine.current > 0.3 }
+        for paused in [false, true] {
+            if paused { engine.pause() }
+            remote.set(title: paused ? "暂停后更新" : "播放中更新", artist: "测试作者", thumb: UIImage(), url: audio)
+            let info = MPNowPlayingInfoCenter.default().nowPlayingInfo!
+            XCTAssertEqual(info[MPNowPlayingInfoPropertyElapsedPlaybackTime] as? Double ?? -1, engine.current, accuracy: 0.03)
+            XCTAssertEqual(info[MPNowPlayingInfoPropertyPlaybackRate] as? Double, paused ? 0 : 1.5)
+            XCTAssertEqual(info[MPNowPlayingInfoPropertyDefaultPlaybackRate] as? Double, 1.5)
+            XCTAssertEqual(info[MPMediaItemPropertyPlaybackDuration] as? Double ?? -1, engine.duration, accuracy: 0.01)
+            XCTAssertEqual(info[MPMediaItemPropertyTitle] as? String, paused ? "暂停后更新" : "播放中更新")
+        }
+    }
+
     /// 发送与系统格式一致的中断通知，等待由播放器统一回主线程消费。
     private func interruption(_ type: AVAudioSession.InterruptionType, options: AVAudioSession.InterruptionOptions = []) {
         NotificationCenter.default.post(name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance(), userInfo: [AVAudioSessionInterruptionTypeKey: type.rawValue, AVAudioSessionInterruptionOptionKey: options.rawValue])

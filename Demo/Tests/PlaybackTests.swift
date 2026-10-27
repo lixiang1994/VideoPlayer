@@ -1,5 +1,6 @@
 import XCTest
 import AVFoundation
+import UIKit
 @testable import VideoPlayer
 
 /// 验证 Demo 实际使用的 AVPlayer 后端，包括暂停、倍速、准备阶段恢复进度和错误恢复。
@@ -207,6 +208,32 @@ final class PlaybackTests: PlaybackTestCase {
 
     /// 两分钟连续播放烟测，每十秒检查实际推进；这不能替代数小时耗电与内存测试。
     func testTwoMinuteContinuousPlayback() {
+        // 保存系统中断与前后台证据；不自动恢复播放，也不放宽连续推进的验收断言。
+        let player = engine!
+        let start = ProcessInfo.processInfo.systemUptime
+        var events: [String] = []
+        /// 所有通知与控制回调均在主线程收集，只记录当前测试实例的状态。
+        func record(_ event: String) {
+            events.append(String(format: "%.3f current=%.3f target=%.1f control=%@ app=%d %@", ProcessInfo.processInfo.systemUptime - start, player.current, player.rate, String(describing: player.control), UIApplication.shared.applicationState.rawValue, event))
+        }
+        let names: [Notification.Name] = [AVAudioSession.interruptionNotification, AVAudioSession.routeChangeNotification, UIApplication.didEnterBackgroundNotification, UIApplication.willEnterForegroundNotification]
+        let tokens = names.map { name in
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { notification in
+                let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+                let options = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
+                record("\(name.rawValue) type=\(String(describing: type)) options=\(String(describing: options))")
+            }
+        }
+        recorder.onControl = { state in record("control=\(state)") }
+        defer {
+            recorder.onControl = nil
+            tokens.forEach { NotificationCenter.default.removeObserver($0) }
+            let trace = XCTAttachment(string: events.joined(separator: "\n"))
+            trace.name = "两分钟播放的系统中断与生命周期"
+            trace.lifetime = .keepAlways
+            add(trace)
+        }
+        record("start")
         let url = Bundle.main.url(forResource: "long", withExtension: "mp4", subdirectory: "Fixtures")!
         prepare(url)
         engine.play()
@@ -214,6 +241,7 @@ final class PlaybackTests: PlaybackTestCase {
         var previous = engine.current
         for _ in 0..<12 {
             pump(10)
+            record("sample")
             XCTAssertEqual(engine.control, .playing)
             XCTAssertGreaterThan(engine.current - previous, 8)
             previous = engine.current

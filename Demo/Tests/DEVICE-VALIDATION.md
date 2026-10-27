@@ -77,3 +77,26 @@
 新增真机 testLocalAudioLevelAndMixAttenuation：实际 AVAssetReader 解码样本，要求原始 RMS 高于 0.05（约 −26 dBFS）；使用 AVAssetReaderAudioMixOutput 应用 AVAudioMix 后，要求 RMS 比例为 0.25 ± 0.01。该检查验证素材与离线 mix 的真实 PCM，不冒充扬声器声压、实时 AVPlayer 输出或人工听感。
 
 更新素材后，全部页面、HTTP 和视频输出回归共 37 项真机测试通过，0 失败、0 跳过；结果包 `/private/tmp/videoplayer-update/audible-local-fixtures.xcresult`。累计已验证 94 个不同用例。测试机已重新安装含新素材的 Demo 并恢复普通启动。
+
+
+## 通用修复同步（2026-10-27）
+
+对照 AudioPlayer 当前实现检查核心状态、seek 取消、代理重入、会话中断、资源切换与动态 audioMix；对应通用逻辑已具备，不复制视频/音频之间有意不同的输出与后台接口，也不加入静音加速、PCM 检测或其缓冲能力接口。
+
+本轮修复：
+
+- `VideoPlayerRemoteControl.set(...)` 替换元数据后立即补回当前进度、时长、执行速率与默认目标速率；播放中和暂停时都回归。只有资源就绪且控制状态为播放时，锁屏速率才为目标值，其余为 0。
+- Demo 倍率明确标为目标；暂停时修改选择立即刷新，准备、缓冲、结束与失败单独展示，不等待媒体进度回调。
+- 真机诊断入口保留 storyboard 列表及返回按钮，独立窗口也补齐相同导航；返回清理视频。默认仍请求系统 PiP，导航测试通过独立参数关闭主动请求，不把导航回归当作系统 PiP 开启验证。
+
+新增 3 项测试：导航栈/返回停止，本地与 HTTP MP4 的目标文案及实际媒体时钟，播放/暂停中更新锁屏元数据。当前共 **97 项**：Playback 31、Seek 16、HTTP 16、Session 11、VideoOutput 15、Demo 8。两分钟播放新增被动系统中断与前后台诊断附件，保留原有每十秒推进断言。
+
+iPhone 16e / iOS 27.0.1 最终完整一轮 **97 通过、0 失败、0 跳过**，约 201 秒。两分钟媒体推进至 120.26 秒，该轮附件没有中断或退后台。本地及 HTTP 的底层速率与 1.5×/2× 目标一致；独立媒体时钟测量分别为本地 1.500/2.186×、HTTP 1.500/2.000×，均在测试允许的 ±0.25× 短窗口调度/切速误差内。这是短区间推进验证，不声称逐帧精确测速。
+
+第一轮两项针对性测试中，导航起播曾在 8 秒内超时；增加状态附件并使用 15 秒异步加载上限后，3 项针对性测试全部通过，最终完整回归也通过。没有证据确定首次超时原因，未将它当作通过；返回停止、导航与媒体推进断言未放宽。
+
+复查本轮全部改动及相关调用链，未发现新的可确认问题。工程文件、podspec 语法和 diff 检查通过；没有修改版本、tag 或发布配置。本轮未重复触发真实系统 PiP/来电/蓝牙/AirPlay，相关既有证据与限制仍以上文为准。
+
+[97 项真机结果](/private/tmp/videoplayer-common-full.xcresult) · [日志](/private/tmp/videoplayer-common-full.log) · [测量及中断附件](/private/tmp/videoplayer-common-attachments/manifest.json)
+
+[首次针对性结果](/private/tmp/videoplayer-common-targeted.xcresult) · [3 项针对性复测](/private/tmp/videoplayer-common-targeted2.xcresult)

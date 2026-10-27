@@ -224,6 +224,8 @@ open Demo.xcworkspace
 
 旧 PLPlayerKit 适配器保留为可选历史示例：`VIDEOPLAYER_ENABLE_PL=1 pod install`。其旧二进制只适合支持的真机环境，默认与模拟器均不编译该实现；其内部生命周期与协议适配没有纳入本轮可靠性保证。
 
+最新 iPhone 16e / iOS 27.0.1 真机完整回归 **97 项通过、0 失败、0 跳过**。覆盖本地/HTTP 倍率与媒体时钟、暂停目标展示、锁屏元数据刷新、诊断导航返回，以及既有播放、seek、网络、视频输出和 PiP 委托链路；真实系统 PiP 的本轮验证范围另见记录。
+
 当前 SDK 的 DemoTests 最低 iOS 17（XCTest 运行库限制），不改变 Demo 的 iOS 15 部署版本。执行 DemoTests，详细覆盖、命令和限制见 [测试说明](Demo/Tests/README.md) 与 [真机验证记录](Demo/Tests/DEVICE-VALIDATION.md)。夹具随仓库提供，不依赖公网视频可用性；生成脚本需 ffmpeg，日常测试不需要。
 
 ## License

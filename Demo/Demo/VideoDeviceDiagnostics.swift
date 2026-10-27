@@ -13,15 +13,24 @@ final class VideoDeviceDiagnostics {
     private var observers: [NSObjectProtocol] = []
     /// 保存事件时刻的媒体位置与 PiP 状态，避免只观察最终值。
     private var events: [[String: Any]] = []
+    /// 自动请求仅供系统 PiP 诊断；导航回归关闭它，避免异步 PiP 干扰返回路径。
+    private let requestsPictureInPicture: Bool
     /// 本轮诊断只请求一次 PiP，拒绝后保留失败原因。
     private var requestedPiP = false
     /// 已取到的实际截图尺寸。
     private var frameSize = ""
 
-    /// 原始 storyboard 窗口由 Scene 提供；仅诊断模式替换根页面并使用长视频。
-    init(window: UIWindow) {
-        window.rootViewController = UINavigationController(rootViewController: page)
+    /// 原始 storyboard 窗口由 Scene 提供；保留列表作为返回目标，诊断使用长视频。
+    /// requestsPictureInPicture 默认开启，导航测试显式关闭，不改变正常 PiP 诊断行为。
+    init(window: UIWindow, requestsPictureInPicture: Bool = true) {
+        self.requestsPictureInPicture = requestsPictureInPicture
+        // 不能仅把播放页包装成导航根页面，否则仍然没有上一页可返回。
+        // 独立测试窗口没有初始导航时，补齐与正常启动一致的 storyboard 列表。
+        let navigation = window.rootViewController as? UINavigationController
+            ?? UIStoryboard(name: "Main", bundle: .main).instantiateInitialViewController() as! UINavigationController
+        window.rootViewController = navigation
         window.makeKeyAndVisible()
+        navigation.pushViewController(page, animated: false)
         page.loadViewIfNeeded()
         let url = Bundle.main.url(forResource: "long", withExtension: "mp4", subdirectory: "Fixtures")!
         page.preparePlayback(url: url)
@@ -38,7 +47,7 @@ final class VideoDeviceDiagnostics {
     /// 只写诊断文件，读取到的时间与画面均来自真实播放器，不修改其内部状态。
     private func refresh() {
         guard let player = page.player else { return }
-        if player.current > 2, page.isPictureInPicturePossible, !requestedPiP {
+        if requestsPictureInPicture, player.current > 2, page.isPictureInPicturePossible, !requestedPiP {
             requestedPiP = true
             page.startPictureAction()
         }

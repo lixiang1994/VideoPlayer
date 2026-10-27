@@ -241,7 +241,11 @@ class SimplePlayerViewController: UIViewController {
     }
 
     /// 用户倍速改变只修改速率，不重新准备资源。
-    @objc private func rateChanged(_ sender: UISegmentedControl) { player?.rate = [0.5, 1, 1.5, 2][sender.selectedSegmentIndex] }
+    @objc private func rateChanged(_ sender: UISegmentedControl) {
+        player?.rate = [0.5, 1, 1.5, 2][sender.selectedSegmentIndex]
+        // 暂停时没有周期进度反馈，目标选择也需要立即刷新，但不能启动播放。
+        updateDiagnostics()
+    }
 
     /// 填充模式只影响画面层，不改变视频时钟。
     @objc private func gravityChanged(_ sender: UISegmentedControl) { player?.view.contentMode = [.scaleAspectFit, .scaleAspectFill, .scaleToFill][sender.selectedSegmentIndex] }
@@ -330,13 +334,30 @@ class SimplePlayerViewController: UIViewController {
         updateDiagnostics()
     }
 
-    /// 显示资源类型及真实媒体时间，不把 ready 状态当作正在播放。
+    /// 显示资源类型、媒体时间与速率目标；保存的 rate 不能冒充媒体时钟实测。
     private func updateDiagnostics() {
         guard let player = player else { return }
-        diagnostics.text = String(format: "%@ · %@ · %.1f / %.1f 秒 · %.1f×", sourceURL?.isFileURL == true ? "本地" : "网络", player.control == .playing ? "播放中" : "暂停/准备", player.current, player.duration, player.rate)
+        diagnostics.text = String(format: "%@ · %@ · %.1f / %.1f 秒 · 目标 %.1f×", sourceURL?.isFileURL == true ? "本地" : "网络", playbackStatus, player.current, player.duration, player.rate)
+    }
+
+    /// 资源状态和控制反馈分开显示；加载时即使目标倍率非零也不宣称已经播放。
+    private var playbackStatus: String {
+        guard let player = player else { return "未准备" }
+        switch player.state {
+        case .stopped: return "已停止"
+        case .prepare: return "准备中"
+        case .finished: return "已结束"
+        case .failed: return "播放失败"
+        case .playing:
+            if player.loading != .ended { return "缓冲中" }
+            return player.control == .playing ? "播放中" : "已暂停"
+        }
     }
 
     func videoPlayer(_ player: VideoPlayerable, updatedCurrent time: Double) { updateDiagnostics() }
+
+    /// 等待数据可能不伴随媒体进度回调，必须单独刷新缓冲状态。
+    func videoPlayerLoadingState(_ player: VideoPlayerable, state: VideoPlayer.LoadingState) { updateDiagnostics() }
 
     
     private static func instance() -> Self {
@@ -371,6 +392,7 @@ extension SimplePlayerViewController: VideoPlayerDelegate {
     }
     
     func videoPlayerState(_ player: VideoPlayerable, state: VideoPlayer.State) {
+        updateDiagnostics()
         switch state {
         case .playing:
             guard

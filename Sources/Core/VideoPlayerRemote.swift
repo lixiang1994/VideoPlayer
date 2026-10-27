@@ -50,7 +50,14 @@ open class VideoPlayerRemoteControl: NSObject {
     public func updatePlayingInfo() {
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPMediaItemPropertyPlaybackDuration] = player.duration
-        info[MPNowPlayingInfoPropertyPlaybackRate] = player.control == .playing ? player.rate : 0.0
+        // 目标倍速与执行状态分开；未就绪或已结束时不能让系统继续推算媒体进度。
+        let playbackRate: Double
+        if case .playing = player.state, player.control == .playing {
+            playbackRate = player.rate
+        } else {
+            playbackRate = 0
+        }
+        info[MPNowPlayingInfoPropertyPlaybackRate] = playbackRate
         info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = player.rate
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player.current
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
@@ -103,6 +110,8 @@ open class VideoPlayerRemoteControl: NSObject {
         }
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        // 元数据整份替换后立即补齐进度与速率；暂停期间不会再有周期回调替我们校准。
+        updatePlayingInfo()
     }
 
     @objc
