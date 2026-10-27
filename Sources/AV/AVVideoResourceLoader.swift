@@ -12,7 +12,8 @@ class AVVideoResourceLoader: NSObject, AVAssetResourceLoaderDelegate {
     
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
         
-        return true
+        // 未实现数据供给时必须交回系统，返回 true 却不完成请求会让资源永久等待。
+        return false
     }
     
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, didCancel loadingRequest: AVAssetResourceLoadingRequest) {

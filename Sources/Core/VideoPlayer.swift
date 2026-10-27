@@ -17,7 +17,7 @@ public enum VideoPlayer {
     public enum State {
         /// 准备播放: 调用`prepare(resource:)`后的状态.
         case prepare
-        /// 正在播放: `prepare`处理完成后的状态,  当`finished`状态时再次调用`play()`也会回到该状态.
+        /// 资源已就绪；实际播放读取 control。finished 后再次 play 也会回到该状态。
         case playing
         /// 播放停止: 默认的初始状态, 调用`stop()`后的状态.
         case stopped
@@ -59,7 +59,7 @@ public enum VideoPlayer {
 public extension VideoPlayer {
     
     static func setupAudioSession(in queue: DispatchQueue, with completion: @escaping (() -> Void) = {}) {
-        UIApplication.shared.beginReceivingRemoteControlEvents()
+        DispatchQueue.main.async { UIApplication.shared.beginReceivingRemoteControlEvents() }
         queue.async {
             do {
                 let session = AVAudioSession.sharedInstance()
@@ -69,12 +69,12 @@ public extension VideoPlayer {
                 print("音频会话创建失败")
             }
             
-            DispatchQueue.sync(safe: .main, execute: completion)
+            DispatchQueue.main.async(execute: completion)
         }
     }
     
     static func removeAudioSession(in queue: DispatchQueue, with completion: @escaping (() -> Void) = {}) {
-        UIApplication.shared.endReceivingRemoteControlEvents()
+        DispatchQueue.main.async { UIApplication.shared.endReceivingRemoteControlEvents() }
         queue.async {
             do {
                 let session = AVAudioSession.sharedInstance()
@@ -84,7 +84,7 @@ public extension VideoPlayer {
                 print("音频会话释放失败")
             }
             
-            DispatchQueue.sync(safe: .main, execute: completion)
+            DispatchQueue.main.async(execute: completion)
         }
     }
 }

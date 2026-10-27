@@ -8,6 +8,7 @@
 
 import AVKit
 
+/// Demo 的 PiP 生命周期桥接；转发真实事件，旧控制器的迟到事件不能影响新会话。
 class PictureInPicture: NSObject {
     
     weak var delegate: AVPictureInPictureControllerDelegate?
@@ -20,34 +21,20 @@ class PictureInPicture: NSObject {
     }
     
     /// 画中画控制器
-    private var pictureController: AVPictureInPictureController?
+    private(set) var pictureController: AVPictureInPictureController?
     /// 画中画是否关闭 (用于区分点击了画中画"X"按钮, 还是收起按钮)
-    private var isPictureClose = true
-    
+    private(set) var isPictureClose = true
+    /// 当前绑定的画面层；桥接器不额外延长其生命周期。
     private(set) weak var player: AVPlayerLayer?
-    
-    override init() {
-        super.init()
-        
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.willEnterForegroundNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] sender in
-            guard let self = self else { return }
-            guard self.isSuspended, self.isActive else { return }
-            // 从后台回来 延迟1秒自动停止画中画
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.pictureController?.stopPictureInPicture()
-            }
-        }
-    }
-    
+
+    /// 绑定系统控制器。Scene 激活也可能来自 PiP 自身转场，不能据此自动收起画中画。
     func setup(player: AVPlayerLayer) {
         guard isSuspended else { return }
         
+        guard self.player !== player || pictureController == nil else { return }
+        close()
         self.player = player
-        
+        isPictureClose = true
         if #available(iOS 15.0, *) {
             pictureController = AVPictureInPictureController(contentSource: .init(playerLayer: player))
             
@@ -63,8 +50,10 @@ class PictureInPicture: NSObject {
     }
     
     func close() {
-        guard isSuspended else { return }
+        pictureController?.delegate = nil
+        pictureController?.stopPictureInPicture()
         pictureController = nil
+        player = nil
     }
     
     func invalidatePlaybackState() {
@@ -81,6 +70,12 @@ class PictureInPicture: NSObject {
     
     func stop() {
         guard isSuspended else { return }
+        isPictureClose = false
+        pictureController?.stopPictureInPicture()
+    }
+
+    deinit {
+        pictureController?.delegate = nil
         pictureController?.stopPictureInPicture()
     }
 }
@@ -99,38 +94,48 @@ class PictureInPicture: NSObject {
 extension PictureInPicture: AVPictureInPictureControllerDelegate {
     
     func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("将要开始PictureInPicture的代理方法")
+        guard self.pictureController === pictureInPictureController else { return }
         delegate?.pictureInPictureControllerWillStartPictureInPicture?(pictureInPictureController)
     }
     
     func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("已经开始PictureInPicture的代理方法")
+        guard self.pictureController === pictureInPictureController else { return }
         delegate?.pictureInPictureControllerDidStartPictureInPicture?(pictureInPictureController)
     }
     
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
-        print("启动PictureInPicture失败的代理方法")
+        guard self.pictureController === pictureInPictureController else { return }
         delegate?.pictureInPictureController?(pictureInPictureController, failedToStartPictureInPictureWithError: error)
     }
     
     func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("将要停止PictureInPicture的代理方法")
+        guard self.pictureController === pictureInPictureController else { return }
         delegate?.pictureInPictureControllerWillStopPictureInPicture?(pictureInPictureController)
     }
     
     func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-        print("已经停止PictureInPicture的代理方法")
+        guard self.pictureController === pictureInPictureController else { return }
         // 处理画中画关闭
         defer { isPictureClose = true }
-        guard isPictureClose else { return }
-        delegate?.pictureInPictureControllerWillStartPictureInPicture?(pictureInPictureController)
+        // 停止事件必须转发 didStop；关闭与恢复 UI 的业务含义由调用方读取 isPictureClose 区分。
+        delegate?.pictureInPictureControllerDidStopPictureInPicture?(pictureInPictureController)
     }
     
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
-        print("PictureInPicture停止之前恢复用户界面")
-        isPictureClose = false
-        
-        // 设置非画中画关闭
-        completionHandler(true)
+        guard self.pictureController === pictureInPictureController else { completionHandler(false); return }
+        // 恢复成功必须由界面持有者确认，不能在页面已经消失时向系统谎报成功。
+        guard let delegate = delegate,
+              delegate.responds(to: #selector(AVPictureInPictureControllerDelegate.pictureInPictureController(_:restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:))) else {
+            completionHandler(false)
+            return
+        }
+        delegate.pictureInPictureController?(pictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler: { [weak self] restored in
+            guard let self = self, self.pictureController === pictureInPictureController else {
+                completionHandler(false)
+                return
+            }
+            if restored { self.isPictureClose = false }
+            completionHandler(restored)
+        })
     }
 }

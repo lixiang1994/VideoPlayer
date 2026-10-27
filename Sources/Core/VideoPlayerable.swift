@@ -13,6 +13,7 @@ public protocol VideoPlayerURLAsset {
     var value: URL { get }
 }
 
+/// 主线程创建、调用及销毁；代理与 seek completion 同样在主线程回调。
 public protocol VideoPlayerable: NSObjectProtocol {
     
     /// 准备
@@ -24,7 +25,7 @@ public protocol VideoPlayerable: NSObjectProtocol {
     func pause()
     /// 停止
     func stop()
-    /// 快速定位到指定播放时间点 (多次调用 以最后一次为准)
+    /// 快速定位到指定媒体秒；最后一次有效，覆盖、停止或切资源的旧请求以 false 完成。
     func seek(to target: VideoPlayer.Seek)
     
     /// 资源

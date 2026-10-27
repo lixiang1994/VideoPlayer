@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
 s.name         = "VideoPlayer"
-s.version      = "5.2.1"
+s.version      = "5.3.0"
 s.summary      = "视频播放器"
 
 s.homepage     = "https://github.com/lixiang1994/VideoPlayer"
@@ -10,13 +10,13 @@ s.license      = { :type => "MIT", :file => "LICENSE" }
 
 s.author       = { "LEE" => "18611401994@163.com" }
 
-s.platform     = :ios, "10.0"
+s.platform     = :ios, "12.0"
 
 s.source       = { :git => "https://github.com/lixiang1994/VideoPlayer.git", :tag => s.version }
 
 s.requires_arc = true
 
-s.frameworks = 'UIKit', 'Foundation', 'AVFoundation', 'MediaPlayer'
+s.frameworks = 'UIKit', 'Foundation', 'AVFoundation', 'MediaPlayer', 'AVKit', 'CoreImage'
 
 s.swift_version = '5.2'
 

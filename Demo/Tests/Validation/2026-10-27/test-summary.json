@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-27",
+  "device": "iPhone 16e",
+  "os": "iOS 27.0.1 (24A446)",
+  "xcode": "27.0 (27A266a)",
+  "uniqueTestsPassed": 94,
+  "runs": [
+    {
+      "name": "full",
+      "result": "Passed",
+      "passedTests": 90,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 90
+    },
+    {
+      "name": "review",
+      "result": "Passed",
+      "passedTests": 15,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 15
+    },
+    {
+      "name": "scene-pip",
+      "result": "Passed",
+      "passedTests": 18,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 18
+    },
+    {
+      "name": "mix-hls-compatibility",
+      "result": "Passed",
+      "passedTests": 7,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 7
+    },
+    {
+      "name": "audible-local-fixtures",
+      "result": "Passed",
+      "passedTests": 37,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 37
+    }
+  ]
+}

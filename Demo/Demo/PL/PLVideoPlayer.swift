@@ -10,7 +10,7 @@
 import UIKit
 import VideoPlayer
 
-#if !targetEnvironment(simulator)
+#if canImport(PLPlayerKit) && !targetEnvironment(simulator)
 
 import PLPlayerKit
 
@@ -28,7 +28,7 @@ class PLVideoPlayer: NSObject {
     private(set) var configuration: VideoPlayerConfiguration
     
     /// 播放状态
-    private (set) var state: VideoPlayer.State = .stopped {
+    private(set) var state: VideoPlayer.State = .stopped {
         didSet {
             delegate { $0.videoPlayerState(self, state: state) }
         }

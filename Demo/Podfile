@@ -1,11 +1,26 @@
-platform :ios, '10.0'
+# Demo 使用当前 Xcode 支持的最低版本，库本身的 podspec 兼容声明不在此处改变。
+minimum_ios = '15.0'
+platform :ios, minimum_ios
 inhibit_all_warnings!
 
 target 'Demo' do
   use_frameworks!
-  
-  pod 'VideoPlayer', :path => "../"
-  pod 'PLPlayerKit', '3.4.3'
-  pod 'SnapKit' , '~>5.0.0'
+  pod 'VideoPlayer', :path => '../'
+  pod 'SnapKit', '~> 5.0.0'
+  # 旧 PLPlayerKit 仅带设备二进制，默认不安装；需要维护该示例时显式开启。
+  pod 'PLPlayerKit', '3.4.3' if ENV['VIDEOPLAYER_ENABLE_PL'] == '1'
+  target 'DemoTests' do
+    inherit! :search_paths
+  end
+end
 
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      if current.nil? || Gem::Version.new(current) < Gem::Version.new(minimum_ios)
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_ios
+      end
+    end
+  end
 end

@@ -1,0 +1,21 @@
+{
+  "applicationState" : 1,
+  "control" : "playing",
+  "current" : 17.676536768999998,
+  "events" : [
+    {
+      "current" : 0,
+      "event" : "UIApplicationWillEnterForegroundNotification",
+      "pip" : false,
+      "time" : 1793077708.9868751
+    }
+  ],
+  "frameSize" : "160x90",
+  "pipActive" : false,
+  "pipError" : "Failed to start picture in picture.",
+  "pipPossible" : true,
+  "pipRequested" : true,
+  "readyForDisplay" : true,
+  "sceneActivationState" : 1,
+  "timestamp" : 1793077726.9870901
+}

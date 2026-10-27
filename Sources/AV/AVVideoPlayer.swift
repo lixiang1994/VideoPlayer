@@ -7,539 +7,505 @@
 //  │ └─────┐│ └─────┐ │ └─────┐
 //  └───────┘└───────┘ └───────┘
 //
+
 import UIKit
-import Foundation
 import AVFoundation
+import CoreImage
 
 public extension VideoPlayer {
     
     static let av: Builder = .init { AVVideoPlayer($0) }
 }
 
+/// AVPlayer 视频后端；公开操作和属性访问限定在主线程，系统异步事件统一回到主线程消费。
 class AVVideoPlayer: NSObject {
     
-    /// 当前URL
+    /// 当前资源；停止或失败后清空。
     private(set) var resource: VideoPlayerURLAsset?
-    
-    /// 配置
+    /// 创建实例时确定的播放配置。
     private(set) var configuration: VideoPlayerConfiguration
-    
-    /// 播放状态
-    private (set) var state: VideoPlayer.State = .stopped {
+    /// 资源生命周期；playing 沿用原语义，表示资源已就绪，并不代表正在出声。
+    private(set) var state: VideoPlayer.State = .stopped {
         didSet {
-            delegate { $0.videoPlayerState(self, state: state) }
+            stateGeneration &+= 1
+            let stateGeneration = self.stateGeneration
+            let value = state
+            notify(while: { self.stateGeneration == stateGeneration }) { $0.videoPlayerState(self, state: value) }
         }
     }
-    
-    /// 控制状态
+    /// 实际播放控制状态，资源清理时恢复为暂停。
     private(set) var control: VideoPlayer.ControlState = .pausing {
         didSet {
-            delegate { $0.videoPlayerControlState(self, state: control) }
+            guard oldValue != control else { return }
+            let value = control
+            notify(while: { self.control == value }) { $0.videoPlayerControlState(self, state: value) }
         }
     }
-    
-    /// 加载状态
+    /// 当前是否等待媒体数据，与用户的播放意图分开维护。
     private(set) var loading: VideoPlayer.LoadingState = .ended {
         didSet {
-            delegate { $0.videoPlayerLoadingState(self, state: loading) }
+            guard oldValue != loading else { return }
+            let value = loading
+            notify(while: { self.loading == value }) { $0.videoPlayerLoadingState(self, state: value) }
         }
     }
-    
-    /// 播放速率 0.5 - 2.0
+    /// 用户选择的播放速率；暂停期间只保存设置，不启动播放。
     var rate: Double = 1.0 {
         didSet {
-            guard case .playing = state, case .playing = control else { return }
-            player.rate = .init(rate)
+            guard rate.isFinite, Float(rate).isFinite, Float(rate) > 0 else {
+                rate = oldValue
+                return
+            }
+            guard case .playing = state, intendedToPlay, seekRequest == nil, !isInterrupted else { return }
+            applyPlaybackIntent()
         }
     }
-    /// 音量 0 - 1
+    /// 音量范围为 0 到 1，不提供额外增益。
     var volume: Double = 1.0 {
-        didSet { player.volume = .init(volume)}
+        didSet {
+            player.volume = .init(volume)
+        }
     }
-    /// 是否静音
+    /// 静音设置不改变播放意图。
     var isMuted: Bool = false {
         didSet {
             player.isMuted = isMuted
         }
     }
-    /// 是否循环播放
+    /// 开启后在播放结束时寻回起点，沿用当前播放意图。
     var isLoop: Bool = false
     
+    #if os(iOS)
+    /// 是否允许后台播放；禁止时保留播放意图，回到前台再恢复。
+    var allowedBackgroundPlayback: Bool = true
+    /// 由生命周期通知维护；willEnterForeground 到达时 applicationState 仍可能是 background。
+    private var isInBackground = UIApplication.shared.applicationState == .background
+    /// 准备阶段使用的短期后台任务，结束准备或清理资源时必须归还。
+    private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    #endif
+    
+    /// 多播代理使用弱引用，避免播放器与业务层互相持有。
     var delegates: [VideoPlayerDelegateBridge<AnyObject>] = []
-    
-    private lazy var player = AVPlayer()
-    private lazy var playerLayer = AVPlayerLayer(player: player)
-    private lazy var playerView: VideoPlayerView = VideoPlayerView(.init())
-    private lazy var playerOutput = AVPlayerItemVideoOutput()
-    
+    /// 生命周期内复用同一个 AVPlayer，观察者也始终从所属的实例移除。
+    private let player: AVPlayer
+    /// 周期进度回调令牌，释放实例前必须显式移除。
     private var playerTimeObserver: Any?
-    
-    /// 当前时间校准器 用于解决时间精度偏差问题.
-    private var currentTimeCalibrator: TimeInterval?
-    /// 跳转意图 例如当非playing状态时 如果调用了seek(to:)  记录状态 在playing时设置跳转
-    private var intendedToSeek: VideoPlayer.Seek?
-    /// 播放意图 例如当seeking时如果调用了play() 或者 pasue() 记录状态 在seeking结束时设置对应状态
+    /// 画面层与播放器一样复用，避免切资源后 PiP 或调用方仍指向过期播放器。
+    private lazy var playerLayer = AVPlayerLayer(player: player)
+    /// 同一个实例始终返回同一视图；外部布局、contentMode 与 PiP 绑定不会因切资源失效。
+    private lazy var playerView: VideoPlayerView = makePlayerView()
+    /// 当前 item 的视频输出；清理时主动解除绑定，截图不能读取上一资源的帧。
+    private var playerOutput: AVPlayerItemVideoOutput?
+    /// 图像上下文可复用；截图在主线程返回当前已解码帧，不进行额外网络寻时。
+    private let imageContext = CIContext()
+    /// 每次切资源或停止时递增，隔离已排队的旧资源回调。
+    private var generation: UInt64 = 0
+    /// 当前有效的寻时请求；对象身份用于隔离被取消请求的迟到回调。
+    private var seekRequest: VideoPlayerSeekRequest?
+    /// 状态广播可同步触发下一状态，代次防止后续代理收到过期的生命周期事件。
+    private var stateGeneration: UInt64 = 0
+    /// 同一资源内每次有效 seek 递增，隔离代理重入后已经过期的寻时事件。
+    private var seekGeneration: UInt64 = 0
+    /// 用户希望播放的状态，不等同于底层瞬时 rate。
     private var intendedToPlay: Bool = false
-    
+    /// 音频会话中断期间禁止自动恢复，结束时还需检查系统的 shouldResume。
+    private var isInterrupted: Bool = false
+    /// 已完成寻时的实际位置，用于短暂屏蔽底层进度回退；切资源时清空。
+    private var currentTimeCalibrator: TimeInterval?
+    /// 仅保留最近一次连续卡顿的记录，避免历史卡顿累计触发失败。
+    private var itemPlaybackStalledRecords: [Double] = []
+    /// 播放器实际控制状态的观察令牌。
     private var timeControlStatusObservation: NSKeyValueObservation?
-    private var reasonForWaitingToPlayObservation: NSKeyValueObservation?
-    
+    /// 资源状态保持全程监听，包含 readyToPlay 之后的 failed。
     private var itemStatusObservation: NSKeyValueObservation?
+    /// 总时长变化的观察令牌。
     private var itemDurationObservation: NSKeyValueObservation?
+    /// 已加载时间段的观察令牌。
     private var itemLoadedTimeRangesObservation: NSKeyValueObservation?
+    /// 缓冲可持续播放状态的观察令牌。
     private var itemPlaybackLikelyToKeepUpObservation: NSKeyValueObservation?
+    /// 当前资源的 block 通知令牌，销毁时统一注销。
+    private var itemNotifications: [NSObjectProtocol] = []
     
-    private var itemPlaybackStalledObserver: Any?
-    private var itemDidPlayToEndTimeObserver: Any?
-    private var itemFailedToPlayToEndTimeObserver: Any?
-    
-    init(_ configuration: VideoPlayerConfiguration) {
+    /// 默认使用系统播放器；允许内部注入播放器以验证取消回调等确定性时序。
+    init(_ configuration: VideoPlayerConfiguration, player: AVPlayer = AVPlayer()) {
         self.configuration = configuration
+        self.player = player
         super.init()
-        
-        setup()
         setupNotification()
     }
     
-    private func setup() {
-        rate = 1.0
-        volume = 1.0
-        isMuted = false
-        isLoop = false
+    deinit {
+        // 不向代理广播销毁过程，避免回调重新进入正在析构的实例。
+        removeObserver()
+        removeNotification()
+        NotificationCenter.default.removeObserver(self)
+        playerLayer.player = nil
+        player.pause()
+        player.currentItem?.cancelPendingSeeks()
+        player.currentItem?.asset.cancelLoading()
+        player.replaceCurrentItem(with: nil)
+        seekRequest?.complete(false)
+        #if os(iOS)
+        endBackgroundTask()
+        #endif
     }
     
+    /// 注册与资源无关的系统通知；资源通知单独绑定具体 item。
     private func setupNotification() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(sessionInterruption),
-            name: AVAudioSession.interruptionNotification,
-            object: AVAudioSession.sharedInstance()
-        )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(willEnterForeground),
-            name: UIApplication.willEnterForegroundNotification,
-            object: nil
-        )
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
+        NotificationCenter.default.addObserver(self, selector: #selector(routeChanged), name: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance())
+        NotificationCenter.default.addObserver(self, selector: #selector(mediaServicesWereReset), name: AVAudioSession.mediaServicesWereResetNotification, object: AVAudioSession.sharedInstance())
+        #if os(iOS)
+        NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        #endif
     }
 }
 
 extension AVVideoPlayer {
     
-    /// 错误
+    /// 每个代理调用前重新校验；除资源切换外，调用方也可隔离同一资源内已被覆盖的事件。
+    private func notify(while isValid: () -> Bool = { true }, _ action: (VideoPlayerDelegate) -> Void) {
+        let generation = self.generation
+        delegate {
+            guard self.generation == generation, isValid() else { return }
+            action($0)
+        }
+    }
+
+    /// KVO 可能在非主线程触发；异步消费同时避免注册观察者时同步重入。
+    private func receive(_ item: AVPlayerItem, action: @escaping (AVVideoPlayer) -> Void) {
+        DispatchQueue.main.async { [weak self, weak item] in
+            guard let self = self, let item = item, self.player.currentItem === item else { return }
+            action(self)
+        }
+    }
+
+    /// 失败前先使旧回调失效；取消请求的业务回调若切换资源，不再覆盖新状态。
     private func error(_ value: Swift.Error?) {
-        clear()
+        let generation = clear()
+        guard self.generation == generation else { return }
+        control = .pausing
+        guard self.generation == generation else { return }
+        loading = .ended
+        guard self.generation == generation else { return }
         state = .failed(value)
     }
-    
-    /// 清理
-    private func clear() {
-        guard let item = player.currentItem else { return }
-        
-        loading = .ended
-        
+
+    /// 清理资源但不广播中间状态；先使异步操作失效，再取消底层请求。
+    @discardableResult
+    private func clear() -> UInt64 {
+        generation &+= 1
+        let generation = self.generation
+        let request = seekRequest
+        seekRequest = nil
+        removeObserver()
+        removeNotification()
         player.pause()
-        
-        // 取消相关
-        item.cancelPendingSeeks()
-        item.asset.cancelLoading()
-        
-        // 移除监听
-        removeObserver()
-        removeObserver(item: item)
-        removeNotification(item: item)
-        
-        // 移除item
+        player.currentItem?.cancelPendingSeeks()
+        player.currentItem?.asset.cancelLoading()
+        if let output = playerOutput { player.currentItem?.remove(output) }
+        playerOutput = nil
         player.replaceCurrentItem(with: nil)
-        // 清空资源
         resource = nil
-        // 清理意图
-        intendedToSeek = nil
         intendedToPlay = false
+        // 会话中断属于整个播放器，切资源不能清掉尚未结束的中断。
+        currentTimeCalibrator = nil
+        itemPlaybackStalledRecords = []
+        #if os(iOS)
+        endBackgroundTask()
+        #endif
+        // 回调可能同步准备另一资源，因此调用方必须检查返回的资源代次。
+        request?.complete(false)
+        return generation
     }
     
-    private func addObserver() {
-        // 移除原有观察者
-        removeObserver()
-        // 当前播放时间回调间隔 (每秒N次)
-        let interval = CMTime(
-            value: 1,
-            timescale: .init(configuration.currentTimeCallbackPeriodicInterval)
-        )
-        playerTimeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) {
-            [weak self] (time) in
-            guard let self = self else { return }
+    /// 为当前资源注册播放时钟和控制状态，回调始终校验 item 身份。
+    private func addObserver(item: AVPlayerItem) {
+        let frequency = Swift.max(1, Swift.min(configuration.currentTimeCallbackPeriodicInterval, UInt(Int32.max)))
+        let interval = CMTime(value: 1, timescale: CMTimeScale(frequency))
+        playerTimeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self, weak item] _ in
+            guard let self = self, let item = item, self.player.currentItem === item else { return }
             guard case .playing = self.state else { return }
-            let time = CMTimeGetSeconds(time)
-            // 如果有跳转意图 则返回跳转的目标时间
-            if let seek = self.intendedToSeek {
-                self.delegate { $0.videoPlayer(self, updatedCurrent: seek.time) }
-                return
-            }
-            // 当前时间校准器 如果大于 当前时间, 则返回校准时间, 否则清空校准器 返回当前时间.
-            if let temp = self.currentTimeCalibrator, temp > time {
-                self.delegate { $0.videoPlayer(self, updatedCurrent: temp) }
-                return
-            }
-            self.currentTimeCalibrator = nil
-            
-            self.delegate { $0.videoPlayer(self, updatedCurrent: time) }
+            let current = self.current
+            self.notify { $0.videoPlayer(self, updatedCurrent: current) }
         }
-        
-        timeControlStatusObservation = player.observe(\.timeControlStatus) {
-            [weak self] (observer, change) in
-            guard let self = self else { return }
-            guard case .playing = self.state else { return }
-            
-            switch observer.timeControlStatus {
-            case .paused:
-                self.control = .pausing
-                
-            case .playing:
-                // 校准播放速率
-                if observer.rate == .init(self.rate) {
-                    self.control = .playing
-                    
-                } else {
-                    observer.rate = .init(self.rate)
-                }
-                
-            default:
-                break
+        timeControlStatusObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self, weak item] _, _ in
+            guard let item = item else { return }
+            self?.receive(item) { $0.updatePlaybackState() }
+        }
+        itemStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+            self?.receive(item) { $0.itemStatusChanged(item) }
+        }
+        itemDurationObservation = item.observe(\.duration, options: [.new, .old]) { [weak self] item, change in
+            guard change.newValue != change.oldValue else { return }
+            self?.receive(item) { engine in
+                let duration = engine.duration
+                engine.notify { $0.videoPlayer(engine, updatedDuration: duration) }
             }
         }
-        
-        reasonForWaitingToPlayObservation = player.observe(\.reasonForWaitingToPlay) {
-            [weak self] (observer, change) in
-            guard let self = self else { return }
-            guard observer.automaticallyWaitsToMinimizeStalling else { return }
-            guard observer.timeControlStatus == .waitingToPlayAtSpecifiedRate else { return }
-            
-            switch observer.reasonForWaitingToPlay {
-            case .toMinimizeStalls?:
-                print("toMinimizeStalls")
-                self.loading = .began
-                
-            case .evaluatingBufferingRate?:
-                print("evaluatingBufferingRate")
-                
-            case .noItemToPlay?:
-                print("noItemToPlay")
-                
-            default:
-                self.loading = .ended
+        itemLoadedTimeRangesObservation = item.observe(\.loadedTimeRanges, options: [.new, .old]) { [weak self] item, change in
+            guard change.newValue != change.oldValue else { return }
+            self?.receive(item) { engine in
+                let buffer = engine.buffer
+                engine.notify { $0.videoPlayer(engine, updatedBuffer: buffer) }
             }
+        }
+        itemPlaybackLikelyToKeepUpObservation = item.observe(\.isPlaybackLikelyToKeepUp, options: [.new, .old]) { [weak self] item, change in
+            guard change.newValue != change.oldValue else { return }
+            self?.receive(item) { $0.updatePlaybackState() }
         }
     }
+
+    /// 先移除周期回调，再释放 KVO 令牌；停止后允许安全重复调用。
     private func removeObserver() {
         if let observer = playerTimeObserver {
             playerTimeObserver = nil
             player.removeTimeObserver(observer)
         }
-        
-        if let observer = timeControlStatusObservation {
-            observer.invalidate()
-            timeControlStatusObservation = nil
-        }
-        
-        if let observer = reasonForWaitingToPlayObservation {
-            observer.invalidate()
-            reasonForWaitingToPlayObservation = nil
-        }
-    }
-    
-    private func addObserver(item: AVPlayerItem) {
-        do {
-            let observation = item.observe(\.status) {
-                [weak self] (observer, change) in
-                guard let self = self else { return }
-                
-                switch observer.status {
-                case .readyToPlay:
-                    let handle = { [weak self] in
-                        guard let self = self else { return }
-                        self.intendedToSeek = nil
-                        self.state = .playing
-                        
-                        if self.intendedToPlay {
-                            self.play()
-                            
-                        } else {
-                            self.pause()
-                        }
-                    }
-                    
-                    // 查看是否有需要的Seek
-                    if let seek = self.intendedToSeek {
-                        self.player.pause()
-                        self.seek(to: seek, for: item) { _ in
-                            handle()
-                        }
-                        
-                    } else {
-                        handle()
-                    }
-                    
-                    self.itemStatusObservation = nil
-                    
-                case .failed:
-                    self.error(item.error)
-                    
-                default:
-                    break
-                }
-            }
-            itemStatusObservation = observation
-        }
-        do {
-            let observation = item.observe(\.duration, options: [.new, .old]) {
-                [weak self] (observer, change) in
-                guard let self = self else { return }
-                guard change.newValue != change.oldValue else { return }
-                
-                let time = observer.duration.seconds.isNaN ? 0 : observer.duration.seconds
-                self.delegate { $0.videoPlayer(self, updatedDuration: time) }
-            }
-            itemDurationObservation = observation
-        }
-        do {
-            let observation = item.observe(\.loadedTimeRanges, options: [.new, .old]) {
-                [weak self] (observer, change) in
-                guard let self = self else { return }
-                guard change.newValue != change.oldValue else { return }
-                
-                self.delegate { $0.videoPlayer(self, updatedBuffer: self.buffer) }
-            }
-            itemLoadedTimeRangesObservation = observation
-        }
-        do {
-            let observation = item.observe(\.isPlaybackLikelyToKeepUp, options: [.new, .old]) {
-                [weak self] (observer, change) in
-                guard let self = self else { return }
-                guard change.newValue != change.oldValue else { return }
-                
-                self.loading = !observer.isPlaybackLikelyToKeepUp ? .began : .ended
-            }
-            itemPlaybackLikelyToKeepUpObservation = observation
-        }
-    }
-    private func removeObserver(item: AVPlayerItem) {
+        timeControlStatusObservation = nil
         itemStatusObservation = nil
         itemDurationObservation = nil
         itemLoadedTimeRangesObservation = nil
         itemPlaybackLikelyToKeepUpObservation = nil
     }
     
+    /// 就绪只推进一次生命周期，后续仍保留失败监听。
+    private func itemStatusChanged(_ item: AVPlayerItem) {
+        switch item.status {
+        case .readyToPlay:
+            guard case .prepare = state else { return }
+            let generation = self.generation
+            #if os(iOS)
+            endBackgroundTask()
+            #endif
+            state = .playing
+            guard self.generation == generation, player.currentItem === item else { return }
+            if let request = seekRequest {
+                // 代理可在 ready 回调内创建 seek；已开始的请求不能重复启动。
+                if !request.hasBegan { startSeek(request, item: item) }
+            } else {
+                applyPlaybackIntent()
+            }
+        case .failed:
+            error(item.error)
+        default:
+            break
+        }
+    }
+
+    /// 根据实际控制状态派发事件，不在状态观察回调内反复修改播放速率。
+    private func updatePlaybackState() {
+        guard case .playing = state else { return }
+        let generation = self.generation
+        // pause 后系统状态可能迟到；后台限制和用户意图都必须优先于瞬时 timeControlStatus。
+        control = isPlaybackPermitted && player.timeControlStatus == .playing ? .playing : .pausing
+        guard self.generation == generation else { return }
+        // control 代理可能同步暂停、seek 或改变后台策略，因此这里重新读取许可，不能缓存旧值。
+        loading = isPlaybackPermitted && player.timeControlStatus == .waitingToPlayAtSpecifiedRate ? .began : .ended
+    }
+
+    /// 控制状态和起播共用同一许可条件，每次读取都反映代理重入后的最新意图及策略。
+    private var isPlaybackPermitted: Bool {
+        #if os(iOS)
+        guard allowedBackgroundPlayback || !isInBackground else { return false }
+        #endif
+        return intendedToPlay && !isInterrupted && seekRequest == nil
+    }
+
+    /// 恢复播放只消费当前意图；中断和后台策略优先于自动播放。
+    private func applyPlaybackIntent() {
+        guard case .playing = state, seekRequest == nil else { return }
+        let generation = self.generation
+        if isPlaybackPermitted {
+            player.playImmediately(atRate: .init(rate))
+        } else {
+            player.pause()
+        }
+        guard self.generation == generation else { return }
+        updatePlaybackState()
+    }
+
+    /// 通知绑定当前 item，迟到的通知与 KVO 使用相同的身份校验。
     private func addNotification(item: AVPlayerItem) {
-        do {
-            let observation = NotificationCenter.default.addObserver(
-                forName: .AVPlayerItemPlaybackStalled,
-                object: item,
-                queue: .main
-            ) { [weak self] sender in
-                guard let self = self else { return }
-                self.itemPlaybackStalled(sender)
+        let handlers: [(Notification.Name, (AVVideoPlayer, Notification) -> Void)] = [
+            (.AVPlayerItemPlaybackStalled, { $0.itemPlaybackStalled($1) }),
+            (.AVPlayerItemDidPlayToEndTime, { $0.itemDidPlayToEndTime($1) }),
+            (.AVPlayerItemFailedToPlayToEndTime, { $0.itemFailedToPlayToEndTime($1) })
+        ]
+        for (name, handler) in handlers {
+            let token = NotificationCenter.default.addObserver(forName: name, object: item, queue: .main) { [weak self, weak item] notification in
+                guard let self = self, let item = item, self.player.currentItem === item else { return }
+                handler(self, notification)
             }
-            itemPlaybackStalledObserver = observation
-        }
-        do {
-            let observation = NotificationCenter.default.addObserver(
-                forName: .AVPlayerItemDidPlayToEndTime,
-                object: item,
-                queue: .main
-            ) { [weak self] sender in
-                guard let self = self else { return }
-                self.itemDidPlayToEndTime(sender)
-            }
-            itemDidPlayToEndTimeObserver = observation
-        }
-        do {
-            let observation = NotificationCenter.default.addObserver(
-                forName: .AVPlayerItemFailedToPlayToEndTime,
-                object: item,
-                queue: .main
-            ) { [weak self] sender in
-                guard let self = self else { return }
-                self.itemFailedToPlayToEndTime(sender)
-            }
-            itemFailedToPlayToEndTimeObserver = observation
+            itemNotifications.append(token)
         }
     }
     
-    private func removeNotification(item: AVPlayerItem) {
-        if let observer = itemPlaybackStalledObserver {
-            NotificationCenter.default.removeObserver(
-                observer,
-                name: .AVPlayerItemPlaybackStalled,
-                object: item
-            )
-        }
-        if let observer = itemDidPlayToEndTimeObserver {
-            NotificationCenter.default.removeObserver(
-                observer,
-                name: .AVPlayerItemDidPlayToEndTime,
-                object: item
-            )
-        }
-        if let observer = itemFailedToPlayToEndTimeObserver {
-            NotificationCenter.default.removeObserver(
-                observer,
-                name: .AVPlayerItemFailedToPlayToEndTime,
-                object: item
-            )
-        }
+    /// block 通知不会随 weak self 自动注销，必须显式移除令牌。
+    private func removeNotification() {
+        itemNotifications.forEach { NotificationCenter.default.removeObserver($0) }
+        itemNotifications = []
     }
 }
 
 extension AVVideoPlayer {
     
-    /// 播放中断通知
-    @objc
+    /// 连续卡顿重试不改变用户意图；历史中断不计入新的连续窗口。
     private func itemPlaybackStalled(_ notification: Notification) {
-        guard case .playing = state, intendedToPlay else { return }
-        play()
+        guard case .playing = state, intendedToPlay, !isInterrupted else { return }
+        let now = Date().timeIntervalSince1970
+        if let last = itemPlaybackStalledRecords.last, now - last >= 1 {
+            itemPlaybackStalledRecords = []
+        }
+        itemPlaybackStalledRecords.append(now)
+        if itemPlaybackStalledRecords.count >= 11 {
+            error(NSError(domain: "Playback Stalled", code: -111111))
+        } else {
+            applyPlaybackIntent()
+        }
     }
     
-    /// 播放结束通知
-    @objc
+    /// 循环通过 seek 恢复；普通结束保留资源，允许再次 play 从头播放。
     private func itemDidPlayToEndTime(_ notification: Notification) {
-        // 判断是否循环播放
+        guard case .playing = state, seekRequest == nil else { return }
         if isLoop {
-            // Seek到起始位置
             seek(to: .init(time: .zero))
-            
         } else {
-            // 暂停播放
+            let generation = self.generation
             pause()
-            // 设置完成状态
+            guard self.generation == generation else { return }
             state = .finished
         }
     }
     
-    /// 播放失败通知
-    @objc
+    /// 保留系统提供的具体错误，供业务层决定是否重试或切换后端。
     private func itemFailedToPlayToEndTime(_ notification: Notification) {
         error(notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error)
     }
     
-    /// 会话中断通知
+    /// 系统会话通知可能来自其他线程，统一回主线程并尊重系统恢复许可。
     @objc
     private func sessionInterruption(_ notification: Notification) {
-        guard
-            let info = notification.userInfo,
-            let type = info[AVAudioSessionInterruptionTypeKey] as? Int else {
-            return
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self,
+                  let info = notification.userInfo,
+                  let value = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: value) else { return }
+            switch type {
+            case .began:
+                self.isInterrupted = true
+                self.player.pause()
+                self.updatePlaybackState()
+            case .ended:
+                guard self.isInterrupted else { return }
+                self.isInterrupted = false
+                let raw = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+                if !AVAudioSession.InterruptionOptions(rawValue: raw).contains(.shouldResume) {
+                    self.intendedToPlay = false
+                }
+                self.applyPlaybackIntent()
+            @unknown default:
+                break
+            }
         }
-        guard let _ = player.currentItem else { return }
-        
-        switch AVAudioSession.InterruptionType(rawValue: .init(type)) {
-        case .began? where intendedToPlay:
+    }
+
+    /// 耳机或蓝牙输出断开时暂停，避免突然从扬声器继续播放。
+    @objc
+    private func routeChanged(_ notification: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let value = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                  AVAudioSession.RouteChangeReason(rawValue: value) == .oldDeviceUnavailable else { return }
+            self?.pause()
+        }
+    }
+
+    /// 音频服务重置后显式报告失败，由业务层重新配置会话和资源。
+    @objc
+    private func mediaServicesWereReset(_ notification: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.player.currentItem != nil else { return }
+            self.error(NSError(domain: "VideoPlayer.MediaServicesReset", code: -1))
+        }
+    }
+}
+
+#if os(iOS)
+extension AVVideoPlayer {
+
+    /// 归还后台任务，先清空标识，避免重复结束同一任务。
+    private func endBackgroundTask() {
+        guard backgroundTaskIdentifier != .invalid else { return }
+        let identifier = backgroundTaskIdentifier
+        backgroundTaskIdentifier = .invalid
+        UIApplication.shared.endBackgroundTask(identifier)
+    }
+
+    /// 回前台时仅恢复仍然有效的播放意图。
+    @objc
+    private func willEnterForeground(_ notification: Notification) {
+        // 先解除后台限制，再消费意图；此时不能依赖 UIApplication 的旧状态。
+        isInBackground = false
+        endBackgroundTask()
+        applyPlaybackIntent()
+    }
+
+    /// 后台任务仅保护准备阶段，不能替代宿主的音频后台模式配置。
+    @objc
+    private func didEnterBackground(_ notification: Notification) {
+        isInBackground = true
+        guard player.currentItem != nil else { return }
+        switch state {
+        case .prepare where allowedBackgroundPlayback:
+            guard backgroundTaskIdentifier == .invalid else { return }
+            backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask { [weak self] in
+                self?.endBackgroundTask()
+            }
+        case .playing where !allowedBackgroundPlayback:
             player.pause()
-            
-        case .ended? where intendedToPlay:
-            play()
-            
+            updatePlaybackState()
         default:
             break
         }
     }
-    
-    @objc
-    private func willEnterForeground(_ notification: Notification) {
-        guard player.currentItem != .none else { return }
-        guard case .playing = state, intendedToPlay else { return }
-        // 继续播放
-        play()
-    }
 }
+#endif
 
 extension AVVideoPlayer: VideoPlayerable {
     
     @discardableResult
     func prepare(resource: VideoPlayerURLAsset) -> VideoPlayerView {
-        // 清理原有资源
-        clear()
-        // 重置当前状态
-        loading = .began
-        state = .prepare
-        
-        // 设置当前资源
-        self.resource = resource
-        
-        let asset: AVURLAsset
-        if let temp = resource as? AVURLAsset {
-            asset = temp
-            
-        } else {
-            asset = AVURLAsset(url: resource.value)
-        }
-        
-//        if asset.resourceLoader.delegate == nil {
-//            asset.resourceLoader.setDelegate(AVAssetResourceLoader(), queue: .main)
-//        }
-        
-        // 初始化播放项
+        let generation = clear()
+        guard self.generation == generation else { return playerView }
+        // 专用资源必须复用构建 mix 时的 asset，避免重建后丢失加载选项或音轨绑定。
+        let avResource = resource as? AVVideoPlayerResource
+        let asset = avResource?.asset ?? (resource as? AVURLAsset) ?? AVURLAsset(url: resource.value)
         let item = AVPlayerItem(asset: asset)
+        // 在 item 交给 AVPlayer 之前安装配置；普通资源显式使用 nil，不继承上一首的处理。
+        item.audioMix = avResource?.audioMix
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
-        // 预缓冲时长 默认自动选择
         item.preferredForwardBufferDuration = configuration.preferredBufferDuration
-        // 控制倍速播放的质量: 音频质量适中，计算成本较低，适合语音. 可变率从1/32到32;
-        item.audioTimePitchAlgorithm = .timeDomain
-        
-        playerOutput = AVPlayerItemVideoOutput()
-        item.add(playerOutput)
-        
-        player = AVPlayer(playerItem: item)
+        item.audioTimePitchAlgorithm = .spectral
+        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
+        item.add(output)
+        playerOutput = output
+        self.resource = resource
+        intendedToPlay = configuration.isAutoplay
         player.actionAtItemEnd = .pause
-        player.rate = .init(rate)
         player.volume = .init(volume)
         player.isMuted = isMuted
-        
         player.automaticallyWaitsToMinimizeStalling = false
-        
-        // 添加监听
-        addObserver()
+        // 非零 rate 会直接请求播放；准备阶段保持暂停，等观察者建立后再消费自动播放意图。
+        player.replaceCurrentItem(with: item)
         addObserver(item: item)
         addNotification(item: item)
-        
-        // 设置初始播放意图
-        intendedToPlay = configuration.isAutoplay
-        
-        let layer = AVPlayerLayer(player: player)
-        layer.masksToBounds = true
-        self.playerLayer = layer
-        
-        // 构建播放视图
-        playerView = VideoPlayerView(layer)
-        playerView.observe { (size, animation) in
-            if let animation = animation {
-                CATransaction.begin()
-                CATransaction.setAnimationDuration(animation.duration)
-                CATransaction.setAnimationTimingFunction(animation.timingFunction)
-                layer.frame = .init(origin: .zero, size: size)
-                CATransaction.commit()
-                
-            } else {
-                layer.frame = .init(origin: .zero, size: size)
-            }
-        }
-        playerView.observe { (contentMode) in
-            switch contentMode {
-            case .scaleToFill:
-                layer.videoGravity = .resize
-                
-            case .scaleAspectFit:
-                layer.videoGravity = .resizeAspect
-                
-            case .scaleAspectFill:
-                layer.videoGravity = .resizeAspectFill
-                
-            default:
-                layer.videoGravity = .resizeAspectFill
-            }
-        }
-        playerView.contentMode = .scaleAspectFit
-        
+        control = .pausing
+        guard self.generation == generation else { return playerView }
+        loading = .began
+        guard self.generation == generation else { return playerView }
+        state = .prepare
         return playerView
     }
     
@@ -547,20 +513,19 @@ extension AVVideoPlayer: VideoPlayerable {
         switch state {
         case .prepare:
             intendedToPlay = true
-            
-        case .playing where intendedToSeek != nil:
+        case .playing:
             intendedToPlay = true
-            
-        case .playing where intendedToSeek == nil:
-            intendedToPlay = true
-            player.rate = .init(rate)
-            
+            applyPlaybackIntent()
         case .finished:
-            state = .playing
+            let generation = self.generation
             intendedToPlay = true
-            // Seek到意图位置或起始位置
-            seek(to: intendedToSeek ?? .init(time: .zero))
-            
+            state = .playing
+            guard self.generation == generation else { return }
+            if let request = seekRequest {
+                if let item = player.currentItem, !request.hasBegan { startSeek(request, item: item) }
+            } else {
+                seek(to: .init(time: .zero))
+            }
         default:
             break
         }
@@ -569,131 +534,167 @@ extension AVVideoPlayer: VideoPlayerable {
     func pause() {
         intendedToPlay = false
         player.pause()
+        updatePlaybackState()
     }
     
     func stop() {
-        clear()
+        let generation = clear()
+        guard self.generation == generation else { return }
+        control = .pausing
+        guard self.generation == generation else { return }
+        loading = .ended
+        guard self.generation == generation else { return }
         state = .stopped
     }
     
     func seek(to target: VideoPlayer.Seek) {
-        guard
-            let item = player.currentItem,
-            player.status == .readyToPlay,
-            case .playing = state else {
-            // 设置跳转意图
-            intendedToSeek = target
+        guard let item = player.currentItem, target.time.isFinite else {
+            target.completion?(false)
             return
         }
-        // 先取消上一个 保证Seek状态
+        let generation = self.generation
+        seekGeneration &+= 1
+        let previous = seekRequest
+        let request = VideoPlayerSeekRequest(target)
+        // 先发布新请求，再取消旧请求；cancelPendingSeeks 仍可能调用旧 completion。
+        seekRequest = request
+        currentTimeCalibrator = nil
         item.cancelPendingSeeks()
-        // 设置跳转意图
-        intendedToSeek = target
-        // 暂停当前播放
+        previous?.complete(false)
+        guard self.generation == generation, seekRequest === request else { return }
+        guard case .playing = state, item.status == .readyToPlay else { return }
+        startSeek(request, item: item)
+    }
+
+    /// ready 前的 seek 与播放中的 seek 共用同一路径，并只对当前请求应用结果。
+    private func startSeek(_ request: VideoPlayerSeekRequest, item: AVPlayerItem) {
+        guard !request.hasBegan, seekRequest === request else { return }
+        request.hasBegan = true
+        let generation = self.generation
+        let target = request.target
+        let seekGeneration = self.seekGeneration
         player.pause()
-        // 代理回调 当前时间为目标时间
-        delegate { $0.videoPlayer(self, updatedCurrent: target.time) }
-        // 代理回调 开始跳转
-        delegate { $0.videoPlayer(self, seekBegan: target) }
-        // 开始Seek
-        seek(to: target, for: item) { [weak self] finished in
-            guard let self = self else { return }
-            // 清空跳转意图
-            self.intendedToSeek = nil
-            // 设置当前时间校准器
-            self.currentTimeCalibrator = target.time
-            // 根据播放意图继续播放
-            if finished, self.intendedToPlay {
-                self.play()
+        updatePlaybackState()
+        guard self.generation == generation, seekRequest === request else { return }
+        // 目标显示仍保留原有行为；完成后只采用底层实际到达的位置。
+        notify(while: { self.seekRequest === request }) { $0.videoPlayer(self, updatedCurrent: target.time) }
+        guard self.generation == generation, seekRequest === request else { return }
+        notify(while: { self.seekRequest === request }) { $0.videoPlayer(self, seekBegan: target) }
+        guard self.generation == generation, seekRequest === request else { return }
+        let seconds = boundedSeekTime(target.time, item: item)
+        let time = CMTime(seconds: seconds, preferredTimescale: 600)
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak item] finished in
+            DispatchQueue.main.async {
+                guard let self = self, let item = item,
+                      self.generation == generation, self.player.currentItem === item,
+                      self.seekRequest === request else {
+                    request.complete(false)
+                    return
+                }
+                self.seekRequest = nil
+                let current = item.currentTime().seconds
+                self.currentTimeCalibrator = finished && current.isFinite ? current : nil
+                // 先完成内部状态，再调用业务 completion；业务可在回调里继续 seek、切资源或暂停。
+                request.complete(finished)
+                guard self.generation == generation, self.seekGeneration == seekGeneration, self.seekRequest == nil else { return }
+                // 第一个代理可能开始新 seek，后续代理不能再收到旧请求的结束事件。
+                self.notify(while: { self.seekGeneration == seekGeneration }) { $0.videoPlayer(self, seekEnded: target) }
+                guard self.generation == generation, self.seekGeneration == seekGeneration, self.seekRequest == nil else { return }
+                self.applyPlaybackIntent()
             }
-            // 代理回调 结束跳转
-            self.delegate { $0.videoPlayer(self, seekEnded: target) }
         }
     }
     
-    private func seek(to target: VideoPlayer.Seek, for item: AVPlayerItem, with completion: @escaping ((Bool) -> Void)) {
-        var time = CMTime(
-            seconds: target.time,
-            preferredTimescale: item.duration.timescale
-        )
-        // 校验目标时间是否可跳转
-        let isSeekable = item.seekableTimeRanges.contains { value in
-            value.timeRangeValue.containsTime(time)
+    /// 点播限制在有效时长内；直播优先限制在实际可寻时窗口，避免使用 indefinite duration。
+    private func boundedSeekTime(_ seconds: TimeInterval, item: AVPlayerItem) -> TimeInterval {
+        let ranges = item.seekableTimeRanges.map { $0.timeRangeValue }.filter {
+            $0.start.seconds.isFinite && $0.end.seconds.isFinite
         }
-        if !isSeekable {
-            // 限制跳转时间
-            time = min(max(time, .zero), item.duration)
+        if ranges.contains(where: { seconds >= $0.start.seconds && seconds <= $0.end.seconds }) {
+            return seconds
         }
-        item.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { (finished) in
-            // 完成回调
-            target.completion?(finished)
-            completion(finished)
+        if !ranges.isEmpty {
+            return ranges.flatMap { [$0.start.seconds, $0.end.seconds] }.min { abs($0 - seconds) < abs($1 - seconds) } ?? 0
         }
+        let duration = item.duration.seconds
+        return duration.isFinite ? Swift.min(Swift.max(0, seconds), Swift.max(0, duration)) : Swift.max(0, seconds)
     }
     
+    /// 构建一次输出视图；闭包只引用画面层，不反向持有播放器。
+    private func makePlayerView() -> VideoPlayerView {
+        let layer = playerLayer
+        layer.masksToBounds = true
+        let view = VideoPlayerView(layer)
+        view.observe { [weak layer] (size, animation) in
+            CATransaction.begin()
+            CATransaction.setDisableActions(animation == nil)
+            if let animation = animation {
+                CATransaction.setAnimationDuration(animation.duration)
+                CATransaction.setAnimationTimingFunction(animation.timingFunction)
+            }
+            layer?.frame = CGRect(origin: .zero, size: size)
+            CATransaction.commit()
+        }
+        view.observe { [weak layer] (mode) in
+            switch mode {
+            case .scaleToFill: layer?.videoGravity = .resize
+            case .scaleAspectFit: layer?.videoGravity = .resizeAspect
+            default: layer?.videoGravity = .resizeAspectFill
+            }
+        }
+        view.contentMode = .scaleAspectFit
+        return view
+    }
+
+    /// 输出视图与画面层跨资源复用；停止仅清空 item，不让调用方持有的视图继续保留旧资源。
+    var view: VideoPlayerView { playerView }
+
+    /// 无 item、无视频轨或尚无可用解码帧时返回 nil；调用方应在真实播放后请求截图。
+    func screenshot(completion: @escaping (UIImage?) -> Void) {
+        guard let item = player.currentItem, let output = playerOutput,
+              let buffer = output.copyPixelBuffer(forItemTime: item.currentTime(), itemTimeForDisplay: nil) else {
+            completion(nil)
+            return
+        }
+        guard let track = item.tracks.compactMap({ $0.assetTrack }).first(where: { $0.mediaType == .video }) else {
+            completion(nil)
+            return
+        }
+        let generation = self.generation
+        // preferredTransform 不随 item ready 保证已加载；异步读取，避免网络素材阻塞主线程。
+        track.loadValuesAsynchronously(forKeys: ["preferredTransform"]) { [weak self] in
+            DispatchQueue.main.async {
+                // 请求期间停止、切资源或销毁时仍完成一次，但不能返回旧资源画面。
+                guard let self = self, self.generation == generation, self.player.currentItem === item,
+                      track.statusOfValue(forKey: "preferredTransform", error: nil) == .loaded else {
+                    completion(nil)
+                    return
+                }
+                let image = CIImage(cvPixelBuffer: buffer).transformed(by: track.preferredTransform)
+                guard let result = self.imageContext.createCGImage(image, from: image.extent) else { completion(nil); return }
+                completion(UIImage(cgImage: result))
+            }
+        }
+    }
+
     var current: TimeInterval {
         guard let item = player.currentItem else { return 0 }
+        if let request = seekRequest { return request.target.time }
         let time = item.currentTime().seconds
-        // 如果有跳转意图 则返回跳转的目标时间
-        if let seek = intendedToSeek {
-            return seek.time
-        }
-        // 当前时间校准器 如果大于 当前时间, 则返回校准时间, 否则清空校准器 返回当前时间.
-        if let temp = currentTimeCalibrator, temp > time {
-            return temp
-        }
+        if let calibrator = currentTimeCalibrator, calibrator > time { return calibrator }
         currentTimeCalibrator = nil
-        return time.isNaN ? 0 : time
+        return time.isFinite ? time : 0
     }
     
     var duration: TimeInterval {
-        guard let item = player.currentItem else { return 0 }
-        let time = CMTimeGetSeconds(item.duration)
-        return time.isNaN ? 0 : time
+        let time = player.currentItem?.duration.seconds ?? 0
+        return time.isFinite ? time : 0
     }
     
     var buffer: Double {
-        guard let item = player.currentItem else { return 0 }
-        guard let range = item.loadedTimeRanges.first?.timeRangeValue else { return 0 }
-        guard duration > 0 else { return 0 }
-        let buffer = range.start.seconds + range.duration.seconds
-        return buffer / duration
-    }
-    
-    var view: VideoPlayerView {
-        return playerView
-    }
-    
-    func screenshot(completion: (UIImage?) -> Void) {
-        guard let item = player.currentItem else {
-            completion(.none)
-            return
-        }
-        guard
-            let pixelBuffer = playerOutput.copyPixelBuffer(
-                forItemTime: item.currentTime(),
-                itemTimeForDisplay: nil
-            ) else {
-            completion(.none)
-            return
-        }
-        
-        let ciimage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
-        guard
-            let cgimage = context.createCGImage(
-                ciimage,
-                from: .init(
-                    x: 0,
-                    y: 0,
-                    width: CVPixelBufferGetWidth(pixelBuffer),
-                height: CVPixelBufferGetHeight(pixelBuffer)
-            )
-        ) else {
-            completion(.none)
-            return
-        }
-        completion(.init(cgImage: cgimage))
+        guard let item = player.currentItem, duration > 0 else { return 0 }
+        let end = item.loadedTimeRanges.map { $0.timeRangeValue.end.seconds }.filter { $0.isFinite }.max() ?? 0
+        return Swift.min(1, Swift.max(0, end / duration))
     }
 }
 
@@ -702,9 +703,52 @@ extension AVVideoPlayer: VideoPlayerDelegates {
     typealias Element = VideoPlayerDelegate
 }
 
+extension AVVideoPlayer: AVVideoAudioMixControlling {
+    /// 返回当前 item 的配置；停止、失败和切换清理后自然返回 nil。
+    var audioMix: AVAudioMix? { player.currentItem?.audioMix }
+
+    /// 只修改已绑定 item；先校验 asset 身份，外部异步构建的旧 mix 不能污染其他资源。
+    @discardableResult
+    func update(audioMix: AVAudioMix?, for asset: AVURLAsset) -> Bool {
+        guard let item = player.currentItem, item.asset === asset else { return false }
+        item.audioMix = audioMix
+        return true
+    }
+}
+
 extension AVURLAsset: VideoPlayerURLAsset {
     
     public var value: URL {
         return url
     }
 }
+
+/// 一次寻时的生命周期；被覆盖、停止或系统取消时也只完成一次业务回调。
+private class VideoPlayerSeekRequest {
+    /// 调用方提交的目标和业务 completion。
+    let target: VideoPlayer.Seek
+    /// 是否已向 AVPlayer 提交，防止 ready 事件重复启动请求。
+    var hasBegan = false
+    /// completion 调用前置位，允许回调重入播放器而不重复完成。
+    private var hasCompleted = false
+
+    /// 保存请求上下文，供准备阶段延迟消费。
+    init(_ target: VideoPlayer.Seek) {
+        self.target = target
+    }
+
+    /// 必须在主线程调用；先标记完成，再执行可能重入的业务代码。
+    func complete(_ finished: Bool) {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        target.completion?(finished)
+    }
+}
+
+/// 可选后台策略能力；不向 VideoPlayerable 增加要求，第三方后端不必实现无效的默认 setter。
+public protocol VideoPlayerBackgroundControlling: VideoPlayerable {
+    /// 默认 true 保留既有行为；false 时后台暂停、前台按用户意图恢复。PiP 与系统会话仍由宿主配置。
+    var allowedBackgroundPlayback: Bool { get set }
+}
+
+extension AVVideoPlayer: VideoPlayerBackgroundControlling { }

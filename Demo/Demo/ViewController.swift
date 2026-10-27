@@ -13,8 +13,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     
     private var list: [String] = [
-        "基于AVPlayer的播放器",
-        "基于PLPlayer的播放器"
+        "AVPlayer 网络视频",
+        "AVPlayer 本地测试视频"
     ]
     
     override func viewDidLoad() {
@@ -24,6 +24,9 @@ class ViewController: UIViewController {
     }
     
     private func setup() {
+        #if canImport(PLPlayerKit) && !targetEnvironment(simulator)
+        list.append("PLPlayer（旧版可选后端）")
+        #endif
         tableView.delegate = self
         tableView.dataSource = self
     }
@@ -63,10 +66,12 @@ extension ViewController: UITableViewDataSource {
             let controller = SimplePlayerViewController.instance(0)
             navigationController?.pushViewController(controller, animated: true)
             
-        case 1: // 基于PLPlayer的播放器
-            let controller = SimplePlayerViewController.instance(1)
+        case 1: // 本地资源不依赖外网，便于复现播放与截图。
+            let controller = SimplePlayerViewController.instance(2)
             navigationController?.pushViewController(controller, animated: true)
             
+        case 2:
+            navigationController?.pushViewController(SimplePlayerViewController.instance(1), animated: true)
         default:
             break
         }

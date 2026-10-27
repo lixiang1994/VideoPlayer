@@ -1,0 +1,33 @@
+{
+  "applicationState" : 2,
+  "control" : "playing",
+  "current" : 57.177475418,
+  "events" : [
+    {
+      "current" : 0,
+      "event" : "UIApplicationWillEnterForegroundNotification",
+      "pip" : false,
+      "time" : 1793077708.9868751
+    },
+    {
+      "current" : 18.787870104,
+      "event" : "UISceneDidActivateNotification",
+      "pip" : false,
+      "time" : 1793077728.0983372
+    },
+    {
+      "current" : 19.694981373000001,
+      "event" : "UIApplicationDidEnterBackgroundNotification",
+      "pip" : true,
+      "time" : 1793077729.0054369
+    }
+  ],
+  "frameSize" : "160x90",
+  "pipActive" : true,
+  "pipError" : "",
+  "pipPossible" : true,
+  "pipRequested" : true,
+  "readyForDisplay" : false,
+  "sceneActivationState" : 2,
+  "timestamp" : 1793077766.4874959
+}

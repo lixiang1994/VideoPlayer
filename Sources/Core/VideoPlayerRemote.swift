@@ -14,6 +14,11 @@ open class VideoPlayerRemoteControl: NSObject {
     
     public let player: VideoPlayerable
     
+    /// 上次同步的媒体时间，用于区分正常推进和寻时。
+    private var lastReportedTime: TimeInterval = 0
+    /// 上次同步的用户倍速，倍速改变时即使控制状态未变也更新锁屏。
+    private var lastReportedRate: Double = 1
+
     public init(_ player: VideoPlayerable) {
         self.player = player
         super.init()
@@ -45,10 +50,12 @@ open class VideoPlayerRemoteControl: NSObject {
     public func updatePlayingInfo() {
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPMediaItemPropertyPlaybackDuration] = player.duration
-        info[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
-        info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
+        info[MPNowPlayingInfoPropertyPlaybackRate] = player.control == .playing ? player.rate : 0.0
+        info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = player.rate
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player.current
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        lastReportedTime = player.current
+        lastReportedRate = player.rate
     }
     
     public func cleanPlayingInfo() {
@@ -56,6 +63,7 @@ open class VideoPlayerRemoteControl: NSObject {
     }
     
     deinit {
+        player.remove(delegate: self)
         cleanCommand()
     }
     
@@ -155,7 +163,8 @@ extension VideoPlayerRemoteControl: VideoPlayerDelegate {
     }
     
     public func videoPlayer(_ player: VideoPlayerable, updatedCurrent time: Double) {
-        updatePlayingInfo()
+        // 正常播放由系统推算媒体进度，只有显著跳变或倍速变化才重写，减少锁屏抖动。
+        if abs(time - lastReportedTime) > 2 || player.rate != lastReportedRate { updatePlayingInfo() }
     }
     
     public func videoPlayer(_ player: VideoPlayerable, updatedDuration time: Double) {

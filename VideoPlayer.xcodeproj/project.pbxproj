@@ -16,9 +16,11 @@
 		9B7AEA9625B1940E0040B3EA /* AVVideoResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7AEA9525B1940E0040B3EA /* AVVideoResourceLoader.swift */; };
 		9B838A04288AA08E00EAA590 /* VideoPlayerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B838A03288AA08E00EAA590 /* VideoPlayerConfiguration.swift */; };
 		C9D0289522607AD100B5E061 /* VideoPlayer.h in Headers */ = {isa = PBXBuildFile; fileRef = C9D0289322607AD100B5E061 /* VideoPlayer.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		DCF74C6C96183EFD2DEEB205 /* AVVideoPlayerResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336FB2DB8218960A4780C962 /* AVVideoPlayerResource.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		336FB2DB8218960A4780C962 /* AVVideoPlayerResource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AVVideoPlayerResource.swift; sourceTree = "<group>"; };
 		3AF41860838A4FC97A843309 /* Pods_VideoPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_VideoPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B39F42F2316842300505AD0 /* VideoPlayerable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoPlayerable.swift; sourceTree = "<group>"; };
 		9B39F4302316842300505AD0 /* VideoPlayerDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoPlayerDelegate.swift; sourceTree = "<group>"; };
@@ -57,6 +59,7 @@
 			children = (
 				9B39F4372316845D00505AD0 /* AVVideoPlayer.swift */,
 				9B7AEA9525B1940E0040B3EA /* AVVideoResourceLoader.swift */,
+				336FB2DB8218960A4780C962 /* AVVideoPlayerResource.swift */,
 			);
 			path = AV;
 			sourceTree = "<group>";
@@ -189,6 +192,7 @@
 				9B39F4352316842400505AD0 /* VideoPlayer.swift in Sources */,
 				9B39F449231694B600505AD0 /* VideoPlayerDelegates.swift in Sources */,
 				9B39F43D2316948700505AD0 /* VideoPlayerView.swift in Sources */,
+				DCF74C6C96183EFD2DEEB205 /* AVVideoPlayerResource.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,7 +251,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -305,7 +309,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -332,13 +336,13 @@
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
 				INFOPLIST_FILE = Sources/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 5.3.0;
 				OTHER_CFLAGS = "-fembed-bitcode";
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.lee.videoplayer;
@@ -366,13 +370,13 @@
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
 				INFOPLIST_FILE = Sources/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 5.3.0;
 				OTHER_CFLAGS = "-fembed-bitcode";
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.lee.videoplayer;
