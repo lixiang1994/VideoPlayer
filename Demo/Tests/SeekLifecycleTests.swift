@@ -4,6 +4,80 @@ import AVFoundation
 
 /// 确定性验证乱序 completion、业务回调重入以及观察者释放。
 final class SeekLifecycleTests: PlaybackTestCase {
+    /// 原生采样不把 pending 的乐观目标冒充 item 已到达的位置，取消后清除 pending。
+    func testNativeSampleHidesPendingTargetAndClearsOnStop() {
+        let player = useControlledPlayer()
+        let monitoring: AVVideoNativePlaybackMonitoring = engine
+        XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, 0, accuracy: 0.05)
+        var results: [Bool] = []
+        engine.seek(to: .init(time: 12, completion: { results.append($0) }))
+        XCTAssertEqual(engine.current, 12)
+        XCTAssertNil(monitoring.nativePlaybackSample.position)
+        XCTAssertTrue(monitoring.nativePlaybackSample.seekPending)
+        XCTAssertEqual(monitoring.nativePlaybackSample.rate, 0)
+        player.completions[0](false)
+        eventually("失败请求应清空 pending") { !monitoring.nativePlaybackSample.seekPending }
+        XCTAssertEqual(results, [false])
+        XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, 0, accuracy: 0.05)
+        engine.seek(to: .init(time: 7))
+        engine.stop()
+        XCTAssertNil(monitoring.nativePlaybackSample.position)
+        XCTAssertFalse(monitoring.nativePlaybackSample.seekPending)
+        XCTAssertEqual(monitoring.nativePlaybackSample.rate, 0)
+    }
+
+    /// 准备期显式 0 仍有一次完整 seek 生命周期，不能当成没有提交请求。
+    func testExplicitZeroSeekDuringPreparation() {
+        let monitoring: AVVideoNativePlaybackMonitoring = engine
+        XCTAssertNil(monitoring.nativePlaybackSample.position)
+        var results: [Bool] = []
+        engine.prepare(resource: audio)
+        engine.seek(to: .init(time: 0, completion: { results.append($0) }))
+        XCTAssertTrue(monitoring.nativePlaybackSample.seekPending)
+        XCTAssertNil(monitoring.nativePlaybackSample.position)
+        eventually("显式零应完成") { results == [true] }
+        XCTAssertEqual(recorder.seekBegins, [0])
+        XCTAssertEqual(recorder.seekEnds, [0])
+        XCTAssertFalse(monitoring.nativePlaybackSample.seekPending)
+        XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, 0, accuracy: 0.05)
+        XCTAssertEqual(monitoring.nativePlaybackSample.rate, 0)
+    }
+
+    /// finished 重开 ready 时的代理可停止；不得继续提交已失效的寻时。
+    func testStopWhenSeekReopensFinishedCancelsRequest() {
+        let player = useControlledPlayer()
+        NotificationCenter.default.post(name: .AVPlayerItemDidPlayToEndTime, object: player.currentItem!)
+        if case .finished = engine.state {} else { XCTFail("应进入 finished") }
+        recorder.onState = { state in
+            if case .playing = state { self.engine.stop() }
+        }
+        var results: [Bool] = []
+        engine.seek(to: .init(time: 0, completion: { results.append($0) }))
+        XCTAssertEqual(results, [false])
+        XCTAssertTrue(player.completions.isEmpty)
+        XCTAssertFalse(engine.nativePlaybackSample.seekPending)
+        XCTAssertNil(engine.resource)
+    }
+
+    /// finished 重开 ready 时的新 seek 应覆盖旧请求，并且只提交一次。
+    func testReentrantSeekWhenReopeningFinishedKeepsNewestRequest() {
+        let player = useControlledPlayer()
+        NotificationCenter.default.post(name: .AVPlayerItemDidPlayToEndTime, object: player.currentItem!)
+        recorder.onState = { state in
+            if case .playing = state { self.engine.seek(to: .init(time: 7)) }
+        }
+        var results: [Bool] = []
+        engine.seek(to: .init(time: 0, completion: { results.append($0) }))
+        XCTAssertEqual(results, [false])
+        XCTAssertEqual(player.completions.count, 1)
+        XCTAssertEqual(recorder.seekBegins, [7])
+        XCTAssertEqual(engine.current, 7)
+        if player.completions.count == 1 { player.completions[0](true) }
+        eventually("最新请求应完成") { !self.engine.nativePlaybackSample.seekPending }
+        XCTAssertEqual(recorder.seekEnds, [7])
+        XCTAssertEqual(engine.nativePlaybackSample.rate, 0)
+    }
+
     /// 第一个代理在旧 seekBegan 内再次寻时，后续代理只能收到仍有效的新请求。
     func testReentrantSeekDoesNotDeliverStaleBeganToOtherDelegates() {
         let player = useControlledPlayer()

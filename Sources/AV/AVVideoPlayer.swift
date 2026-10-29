@@ -153,9 +153,11 @@ class AVVideoPlayer: NSObject {
     
     /// 注册与资源无关的系统通知；资源通知单独绑定具体 item。
     private func setupNotification() {
-        NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
-        NotificationCenter.default.addObserver(self, selector: #selector(routeChanged), name: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance())
-        NotificationCenter.default.addObserver(self, selector: #selector(mediaServicesWereReset), name: AVAudioSession.mediaServicesWereResetNotification, object: AVAudioSession.sharedInstance())
+        if configuration.handlesAudioSessionNotifications {
+            NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
+            NotificationCenter.default.addObserver(self, selector: #selector(routeChanged), name: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance())
+            NotificationCenter.default.addObserver(self, selector: #selector(mediaServicesWereReset), name: AVAudioSession.mediaServicesWereResetNotification, object: AVAudioSession.sharedInstance())
+        }
         #if os(iOS)
         NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
@@ -562,7 +564,17 @@ extension AVVideoPlayer: VideoPlayerable {
         item.cancelPendingSeeks()
         previous?.complete(false)
         guard self.generation == generation, seekRequest === request else { return }
-        guard case .playing = state, item.status == .readyToPlay else { return }
+        guard item.status == .readyToPlay else { return }
+        switch state {
+        case .playing:
+            break
+        case .finished:
+            // 重开已就绪生命周期，保留 EOF 后的暂停意图；状态代理可能同步取消或覆盖请求。
+            state = .playing
+            guard self.generation == generation, seekRequest === request else { return }
+        default:
+            return
+        }
         startSeek(request, item: item)
     }
 
@@ -752,3 +764,38 @@ public protocol VideoPlayerBackgroundControlling: VideoPlayerable {
 }
 
 extension AVVideoPlayer: VideoPlayerBackgroundControlling { }
+
+/// 当前 AVPlayer item 的原生时钟快照；不使用 seek 目标或 current 的校准值。
+public struct AVVideoNativePlaybackSample {
+    /// 就绪且无待处理 seek 时的有效非负媒体秒；无资源、未就绪或 seek 中为 nil。
+    public let position: TimeInterval?
+    /// 包含准备期间尚未向 AVPlayer 提交的 seek 请求。
+    public let seekPending: Bool
+    /// AVPlayer 的瞬时执行速率；不同于 VideoPlayerable.rate 的目标速率。
+    public let rate: Double
+    /// 采样时的系统启动后秒数（单调时钟），不是日期或媒体时间。
+    public let sampledAt: TimeInterval
+}
+
+/// AVPlayer 后端可选的只读监控能力；所有采样必须在主线程进行。
+public protocol AVVideoNativePlaybackMonitoring: VideoPlayerable {
+    /// item 时间和执行速率不证明扬声器或屏幕已经输出。
+    var nativePlaybackSample: AVVideoNativePlaybackSample { get }
+}
+
+extension AVVideoPlayer: AVVideoNativePlaybackMonitoring {
+    var nativePlaybackSample: AVVideoNativePlaybackSample {
+        precondition(Thread.isMainThread)
+        let pending = seekRequest != nil
+        let seconds = player.currentItem?.currentTime().seconds
+        let position: TimeInterval?
+        if !pending, player.currentItem?.status == .readyToPlay,
+           let seconds = seconds, seconds.isFinite, seconds >= 0 {
+            position = seconds
+        } else {
+            position = nil
+        }
+        return .init(position: position, seekPending: pending, rate: Double(player.rate),
+                     sampledAt: ProcessInfo.processInfo.systemUptime)
+    }
+}

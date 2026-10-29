@@ -6,6 +6,47 @@ import UIKit
 
 /// 使用系统通知验证中断策略，锁屏速率必须反映实际播放状态。
 final class SessionAndRemoteTests: PlaybackTestCase {
+    /// 宿主接管时三类会话通知均无 SDK 副作用，重准备不会重新开启监听。
+    func testHostCanDisableAudioSessionNotifications() {
+        XCTAssertTrue(VideoPlayerConfiguration().handlesAudioSessionNotifications)
+        engine.stop()
+        var configuration = VideoPlayerConfiguration()
+        configuration.isAutoplay = false
+        configuration.handlesAudioSessionNotifications = false
+        engine = AVVideoPlayer(configuration)
+        engine.add(delegate: recorder)
+        for url in [audio, otherAudio] {
+            prepare(url)
+            engine.play()
+            eventually("先开始播放") { self.engine.nativePlaybackSample.rate > 0 }
+            interruption(.began)
+            pump(0.1)
+            XCTAssertEqual(engine.control, .playing)
+            XCTAssertGreaterThan(engine.nativePlaybackSample.rate, 0)
+            interruption(.ended) // 没有 shouldResume 也不能撤销宿主的播放意图。
+            NotificationCenter.default.post(name: AVAudioSession.routeChangeNotification,
+                object: AVAudioSession.sharedInstance(),
+                userInfo: [AVAudioSessionRouteChangeReasonKey: AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue])
+            pump(0.1)
+            XCTAssertEqual(engine.control, .playing)
+            NotificationCenter.default.post(name: AVAudioSession.mediaServicesWereResetNotification,
+                object: AVAudioSession.sharedInstance())
+            pump(0.1)
+            XCTAssertEqual(engine.resource?.value, url)
+            if case .playing = engine.state {} else { XCTFail("关闭监听后不能失败") }
+            XCTAssertGreaterThan(engine.nativePlaybackSample.rate, 0)
+            engine.pause()
+            XCTAssertEqual(engine.nativePlaybackSample.rate, 0)
+        }
+        engine.allowedBackgroundPlayback = false
+        engine.play()
+        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertEqual(engine.control, .pausing)
+        XCTAssertEqual(engine.nativePlaybackSample.rate, 0)
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        eventually("App 前后台策略仍应生效") { self.engine.control == .playing }
+    }
+
     /// 系统 timeControlStatus 迟到仍为 playing 时，后台策略也不能向业务层报告正在播放。
     func testBackgroundPolicyOverridesStaleSystemPlayingStatus() {
         engine.stop()

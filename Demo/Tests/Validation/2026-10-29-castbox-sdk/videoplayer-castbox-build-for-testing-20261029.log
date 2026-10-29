@@ -1,0 +1,177 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild build-for-testing -workspace Demo/Demo.xcworkspace -scheme Demo -destination "platform=iOS Simulator,id=2F0EE219-B380-4D82-914B-B28CCAC8A96C" -derivedDataPath /private/tmp/videoplayer-castbox-signed-derived -parallel-testing-enabled NO
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (7 targets)
+    Target 'DemoTests' in project 'Demo'
+        ➜ Explicit dependency on target 'Demo' in project 'Demo'
+        ➜ Implicit dependency on target 'Pods-DemoTests' in project 'Pods' via file 'Pods_DemoTests.framework' in build phase 'Link Binary'
+        ➜ Implicit dependency on target 'SnapKit' in project 'Pods' via options '-framework SnapKit' in build setting 'OTHER_LDFLAGS'
+        ➜ Implicit dependency on target 'VideoPlayer' in project 'Pods' via options '-framework VideoPlayer' in build setting 'OTHER_LDFLAGS'
+    Target 'Pods-DemoTests' in project 'Pods'
+        ➜ Explicit dependency on target 'Pods-Demo' in project 'Pods'
+    Target 'Demo' in project 'Demo'
+        ➜ Implicit dependency on target 'Pods-Demo' in project 'Pods' via file 'Pods_Demo.framework' in build phase 'Link Binary'
+        ➜ Implicit dependency on target 'SnapKit' in project 'Pods' via options '-framework SnapKit' in build setting 'OTHER_LDFLAGS'
+        ➜ Implicit dependency on target 'VideoPlayer' in project 'Pods' via options '-framework VideoPlayer' in build setting 'OTHER_LDFLAGS'
+    Target 'Pods-Demo' in project 'Pods'
+        ➜ Explicit dependency on target 'SnapKit' in project 'Pods'
+        ➜ Explicit dependency on target 'VideoPlayer' in project 'Pods'
+    Target 'VideoPlayer' in project 'Pods'
+        ➜ Explicit dependency on target 'VideoPlayer-VideoPlayer' in project 'Pods'
+    Target 'VideoPlayer-VideoPlayer' in project 'Pods' (no dependencies)
+    Target 'SnapKit' in project 'Pods' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Demo/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -x objective-c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/libtool -V
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+Build description signature: 5df3e544c213b7ece8ee23fc6629575e
+Build description path: /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/XCBuildData/5df3e544c213b7ece8ee23fc6629575e.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk /tmp/videoplayer-castbox-signed-derived/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-35d3147121984ba087c28d913653d626.sdkstatcache
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -o /tmp/videoplayer-castbox-signed-derived/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-35d3147121984ba087c28d913653d626.sdkstatcache
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/SnapKit/SnapKit.framework/Info.plist /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/SnapKit/SnapKit-Info.plist (in target 'SnapKit' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    builtin-infoPlistUtility /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/SnapKit/SnapKit-Info.plist -producttype com.apple.product-type.framework -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/SnapKit/SnapKit.framework/Info.plist
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.bundle/Info.plist /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/VideoPlayer/ResourceBundle-VideoPlayer-VideoPlayer-Info.plist (in target 'VideoPlayer-VideoPlayer' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    builtin-infoPlistUtility /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/VideoPlayer/ResourceBundle-VideoPlayer-VideoPlayer-Info.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.bundle/Info.plist
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework/Info.plist /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/VideoPlayer/VideoPlayer-Info.plist (in target 'VideoPlayer' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    builtin-infoPlistUtility /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/VideoPlayer/VideoPlayer-Info.plist -producttype com.apple.product-type.framework -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework/Info.plist
+
+CpResource /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework/VideoPlayer.bundle /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.bundle (in target 'VideoPlayer' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.bundle /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework
+
+CodeSign /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework (in target 'VideoPlayer' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework
+/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework: replacing existing signature
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Pods_Demo.framework/Info.plist /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/Pods-Demo/Pods-Demo-Info.plist (in target 'Pods-Demo' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    builtin-infoPlistUtility /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/Pods-Demo/Pods-Demo-Info.plist -producttype com.apple.product-type.framework -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Pods_Demo.framework/Info.plist
+
+PhaseScriptExecution [CP]\ Embed\ Pods\ Frameworks /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/Demo.build/Script-2E6B551DCCBC94FBB8FCB0B7.sh (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    /bin/sh -c /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/Demo.build/Script-2E6B551DCCBC94FBB8FCB0B7.sh
+mkdir -p /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks
+rsync --delete -av --filter P .*.?????? --links --filter "- CVS/" --filter "- .svn/" --filter "- .git/" --filter "- .hg/" --filter "- Headers" --filter "- PrivateHeaders" --filter "- Modules" "/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/SnapKit/SnapKit.framework" "/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks"
+Transfer starting: 5 files
+SnapKit.framework/
+SnapKit.framework/SnapKit
+SnapKit.framework/_CodeSignature/CodeResources
+
+sent 407501 bytes  received 70 bytes  57404366 bytes/sec
+total size is 407706  speedup is 1.00
+Code Signing /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks/SnapKit.framework with Identity Sign to Run Locally
+/usr/bin/codesign --force --sign -  --preserve-metadata=identifier,entitlements '/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks/SnapKit.framework'
+/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks/SnapKit.framework: replacing existing signature
+rsync --delete -av --filter P .*.?????? --links --filter "- CVS/" --filter "- .svn/" --filter "- .git/" --filter "- .hg/" --filter "- Headers" --filter "- PrivateHeaders" --filter "- Modules" "/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/VideoPlayer/VideoPlayer.framework" "/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks"
+Transfer starting: 8 files
+VideoPlayer.framework/
+VideoPlayer.framework/VideoPlayer
+VideoPlayer.framework/VideoPlayer.bundle/
+VideoPlayer.framework/VideoPlayer.bundle/Info.plist
+VideoPlayer.framework/VideoPlayer.bundle/PrivacyInfo.xcprivacy
+VideoPlayer.framework/_CodeSignature/CodeResources
+
+sent 550557 bytes  received 120 bytes  134311463 bytes/sec
+total size is 550404  speedup is 1.00
+Code Signing /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks/VideoPlayer.framework with Identity Sign to Run Locally
+/usr/bin/codesign --force --sign -  --preserve-metadata=identifier,entitlements '/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks/VideoPlayer.framework'
+/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks/VideoPlayer.framework: replacing existing signature
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Info.plist /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Demo/Info.plist (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    builtin-infoPlistUtility /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Demo/Info.plist -producttype com.apple.product-type.application -genpkginfo /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/Demo.build/Base.lproj/LaunchScreen-SBPartialInfo.plist -additionalcontentfile /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/Demo.build/Base.lproj/Main-SBPartialInfo.plist -additionalcontentfile /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/Demo.build/assetcatalog_generated_info.plist -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Info.plist
+
+CopySwiftLibs /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Demo.debug.dylib --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/SystemExtensions --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Extensions --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Pods_Demo.framework --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/Demo.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Pods_DemoTests.framework/Info.plist /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/Pods-DemoTests/Pods-DemoTests-Info.plist (in target 'Pods-DemoTests' from project 'Pods')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods
+    builtin-infoPlistUtility /Users/lee/Documents/Code/Github/VideoPlayer/Demo/Pods/Target\ Support\ Files/Pods-DemoTests/Pods-DemoTests-Info.plist -producttype com.apple.product-type.framework -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Pods_DemoTests.framework/Info.plist
+
+ProcessInfoPlistFile /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/Info.plist /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/DemoTests.build/empty-DemoTests.plist (in target 'DemoTests' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    builtin-infoPlistUtility /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/DemoTests.build/empty-DemoTests.plist -producttype com.apple.product-type.bundle.unit-test -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/Info.plist
+
+CopySwiftLibs /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest (in target 'DemoTests' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/DemoTests --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/Frameworks --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/PlugIns --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/SystemExtensions --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/Extensions --scan-folder /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework --scan-folder /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Pods_DemoTests.framework --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/PlugIns/DemoTests.xctest/Frameworks --strip-bitcode --scan-executable /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/Demo.build/Debug-iphonesimulator/DemoTests.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+
+CodeSign /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Demo.debug.dylib (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Demo.debug.dylib
+/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/Demo.debug.dylib: replacing existing signature
+
+CodeSign /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/__preview.dylib (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/__preview.dylib
+/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app/__preview.dylib: replacing existing signature
+
+CodeSign /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app
+/tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app: replacing existing signature
+
+Validate /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app (in target 'Demo' from project 'Demo')
+    cd /Users/lee/Documents/Code/Github/VideoPlayer/Demo
+    builtin-validationUtility /tmp/videoplayer-castbox-signed-derived/Build/Products/Debug-iphonesimulator/Demo.app -shallow-bundle -infoplist-subpath Info.plist
+
+PruneExplicitPrecompiledModules /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/videoplayer-castbox-signed-derived/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/videoplayer-castbox-signed-derived/SDKExplicitPrecompiledModules
+
+** TEST BUILD SUCCEEDED **
+

@@ -353,6 +353,76 @@ final class PlaybackTests: PlaybackTestCase {
         XCTAssertEqual(engine.current, 0, accuracy: 0.05)
     }
     
+    /// 真实 EOF 后不调用 play 就能暂停 seek；显式 0 同样完成且不启动播放。
+    func testPausedSeekAndExplicitZeroAfterRealEOF() {
+        prepare(seek: 23.5)
+        let monitoring: AVVideoNativePlaybackMonitoring = engine
+        engine.play()
+        eventually("应从真实媒体尾部自然结束", timeout: 3) {
+            if case .finished = self.engine.state { return true }; return false
+        }
+        engine.pause()
+        XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, engine.duration, accuracy: 0.1)
+        for target in [2.0, 0.0] {
+            var results: [Bool] = []
+            engine.seek(to: .init(time: target, completion: { results.append($0) }))
+            eventually("EOF 后暂停 seek 应完成", timeout: 3) { !results.isEmpty }
+            XCTAssertEqual(results, [true])
+            if case .playing = engine.state {} else { XCTFail("seek 应重开 ready 生命周期") }
+            XCTAssertEqual(engine.control, .pausing)
+            XCTAssertFalse(monitoring.nativePlaybackSample.seekPending)
+            XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, target, accuracy: 0.05)
+            XCTAssertEqual(monitoring.nativePlaybackSample.rate, 0)
+            pump(0.3)
+            XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, target, accuracy: 0.05)
+            XCTAssertEqual(results, [true])
+        }
+        XCTAssertEqual(Array(recorder.seekBegins.suffix(2)), [2, 0])
+        XCTAssertEqual(Array(recorder.seekEnds.suffix(2)), [2, 0])
+        engine.play()
+        eventually("显式零之后 play 应从起点推进") {
+            let position = monitoring.nativePlaybackSample.position ?? -1
+            return position > 0.1 && position < 2 && monitoring.nativePlaybackSample.rate > 0
+        }
+    }
+
+    /// 从真实 finished 直接 seek 0，无需第二次 play 才结束请求。
+    func testExplicitZeroDirectlyAfterRealEOF() {
+        prepare(PlaybackFixtures.shortAudio)
+        engine.play()
+        eventually("短视频应真实 EOF", timeout: 3) {
+            if case .finished = self.engine.state { return true }; return false
+        }
+        var results: [Bool] = []
+        engine.seek(to: .init(time: 0, completion: { results.append($0) }))
+        eventually("零寻时应完成", timeout: 3) { results == [true] }
+        XCTAssertEqual(engine.nativePlaybackSample.position ?? -1, 0, accuracy: 0.05)
+        XCTAssertFalse(engine.nativePlaybackSample.seekPending)
+        XCTAssertEqual(engine.nativePlaybackSample.rate, 0)
+        XCTAssertEqual(recorder.seekBegins, [0])
+        XCTAssertEqual(recorder.seekEnds, [0])
+        if case .playing = engine.state {} else { XCTFail("应恢复 ready 生命周期") }
+    }
+
+    /// 原生速率独立于目标设置，采样使用单调时钟且暂停时实际位置稳定。
+    func testNativeSampleTracksActualPositionRateAndMonotonicTime() {
+        let monitoring: AVVideoNativePlaybackMonitoring = engine
+        prepare()
+        engine.rate = 1.5
+        XCTAssertEqual(monitoring.nativePlaybackSample.rate, 0)
+        let before = monitoring.nativePlaybackSample
+        engine.play()
+        eventually("原生时钟应推进") { (monitoring.nativePlaybackSample.position ?? 0) > 0.2 }
+        XCTAssertEqual(monitoring.nativePlaybackSample.rate, 1.5)
+        engine.pause()
+        let paused = monitoring.nativePlaybackSample
+        XCTAssertGreaterThan(paused.sampledAt, before.sampledAt)
+        XCTAssertEqual(paused.rate, 0)
+        XCTAssertEqual(engine.rate, 1.5)
+        pump(0.15)
+        XCTAssertEqual(monitoring.nativePlaybackSample.position ?? -1, paused.position ?? -2, accuracy: 0.05)
+    }
+
     /// 自然结束后再次 play，应实际从头播放。
     func testFinishAndReplay() {
         prepare(PlaybackFixtures.shortAudio)

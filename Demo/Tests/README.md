@@ -68,3 +68,8 @@ iPhone 16e / iOS 27.0.1 最终完整一轮 **97 通过、0 失败、0 跳过**�
 [97 项真机结果](/private/tmp/videoplayer-common-full.xcresult) · [日志](/private/tmp/videoplayer-common-full.log) · [测量及中断附件](/private/tmp/videoplayer-common-attachments/manifest.json)
 
 [首次针对性结果](/private/tmp/videoplayer-common-targeted.xcresult) · [3 项针对性复测](/private/tmp/videoplayer-common-targeted2.xcresult)
+
+
+## Castbox SDK 迁移接口（2026-10-29）
+
+新增会话通知关闭配置、原生只读监控及 EOF 后暂停 seek 修复，新增 8 项测试，当前源码共 105 项。当前源码 iPhone 16e / iOS 27.0.1 真机完整回归 **105 通过、0 失败、0 跳过**（约 201 秒，含两分钟实际播放）。构建与 lint 结果、公开 API、模拟器环境故障及剩余未验证范围见 [本轮报告](Validation/2026-10-29-castbox-sdk.md)。上文 97 项真机结果是 2026-10-27 基线；本轮结果与完整证据独立记录。

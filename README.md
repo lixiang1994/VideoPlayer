@@ -116,7 +116,21 @@ player.seek(to: .init(time: 30) { finished in
 | `current` / `duration` | 媒体秒数；未知时长返回 0，不能据此判断直播已结束 |
 | `buffer` | 有限时长资源的已加载范围终点比例，限制在 0...1；不是“连续可播放缓冲秒数” |
 
-准备完成前也可提交 seek；连续请求以最后一次有效。点播寻时限制在可用范围，HLS 直播受实际可寻时窗口约束。精确 seek 可能需要网络请求与重新解码，不能保证零延迟。finished 后调用 play 从头重播。
+准备完成前也可提交 seek；连续请求以最后一次有效。点播寻时限制在可用范围，HLS 直播受实际可寻时窗口约束。精确 seek 可能需要网络请求与重新解码，不能保证零延迟。finished 后直接调用 play 从头重播；暂停时 seek（含显式 0）立即执行并重开 `.playing` 就绪生命周期，完成后保持暂停，随后 play 从寻时位置继续。
+
+AVPlayer 后端提供可选只读原生监控；通过能力转换使用，不要求其他后端实现：
+
+```swift
+if let monitoring = player as? AVVideoNativePlaybackMonitoring {
+    let sample: AVVideoNativePlaybackSample = monitoring.nativePlaybackSample
+    let position: TimeInterval? = sample.position
+    let pending: Bool = sample.seekPending
+    let actualRate: Double = sample.rate
+    let uptime: TimeInterval = sample.sampledAt
+}
+```
+
+在主线程采样。`position` 直接读取当前 `AVPlayerItem.currentTime()`，就绪、无 pending seek 且秒数有效非负才有值；未准备、停止、失败或 seek 中为 nil。`seekPending` 包含准备期间等待提交的请求；`rate` 为 AVPlayer 瞬时速率，暂停时为 0，区别于 `player.rate` 的目标速率；`sampledAt` 为 `ProcessInfo.processInfo.systemUptime` 单调秒数。原生采样不使用 `current` 的乐观 seek 目标或校准值，不证明扬声器或屏幕物理输出。快照成员均为只读，未公开 AVPlayer 或 item 的可变引用。
 
 代理使用 `add(delegate:)` / `remove(delegate:)` 管理。回调允许同步暂停、停止或切资源；引擎会丢弃已经失效的旧事件。独立页面推荐 `instance()`；`shared` 是进程内共享实例，使用者必须自行协调所有权。
 
@@ -202,7 +216,17 @@ AVAudioMix 的普通音量参数适合衰减、渐入和渐出；**2 倍音量�
 (player as? VideoPlayerBackgroundControlling)?.allowedBackgroundPlayback = false
 ```
 
-默认 true 保留旧行为；false 时后台暂停，回到前台按保留的用户意图恢复。用户主动暂停会取消恢复。系统中断结束仍需 shouldResume；耳机断开默认暂停；媒体服务重置报告失败，宿主应重新配置会话并 prepare。
+后台许可默认 true；false 时后台暂停，回到前台按保留的用户意图恢复。用户主动暂停会取消恢复。
+
+音频会话通知默认由 SDK 处理：系统中断结束需 shouldResume；耳机断开暂停；媒体服务重置报告失败，宿主应重新配置会话并 prepare。宿主已有统一会话管理器时，在创建实例前关闭这三类监听：
+
+```swift
+var configuration = VideoPlayerConfiguration()
+configuration.handlesAudioSessionNotifications = false // 默认 true
+let player = VideoPlayer.av.instance(configuration)
+```
+
+false 时宿主负责 interruption、route change 和 media services reset；SDK 不注册这三类通知，不影响 App 前后台策略或当前 item 的结束、失败、卡顿通知。配置是创建时的快照，不能对已有 shared 实例补设。此开关不配置或激活音频会话，也不改变宿主显式调用 `setupAudioSession` 的效果。
 
 后台许可不等于系统保证视频持续播放。视频层绑定、PiP 状态、内容和系统策略都会影响后台行为；本轮通知策略测试不能替代真实来电、蓝牙、AirPlay、锁屏或 PiP 测试。
 
@@ -224,7 +248,7 @@ open Demo.xcworkspace
 
 旧 PLPlayerKit 适配器保留为可选历史示例：`VIDEOPLAYER_ENABLE_PL=1 pod install`。其旧二进制只适合支持的真机环境，默认与模拟器均不编译该实现；其内部生命周期与协议适配没有纳入本轮可靠性保证。
 
-最新 iPhone 16e / iOS 27.0.1 真机完整回归 **97 项通过、0 失败、0 跳过**。覆盖本地/HTTP 倍率与媒体时钟、暂停目标展示、锁屏元数据刷新、诊断导航返回，以及既有播放、seek、网络、视频输出和 PiP 委托链路；真实系统 PiP 的本轮验证范围另见记录。
+2026-10-27 基线 iPhone 16e / iOS 27.0.1 真机完整回归 **97 项通过、0 失败、0 跳过**。覆盖本地/HTTP 倍率与媒体时钟、暂停目标展示、锁屏元数据刷新、诊断导航返回，以及既有播放、seek、网络、视频输出和 PiP 委托链路；真实系统 PiP 的本轮验证范围另见记录。
 
 当前 SDK 的 DemoTests 最低 iOS 17（XCTest 运行库限制），不改变 Demo 的 iOS 15 部署版本。执行 DemoTests，详细覆盖、命令和限制见 [测试说明](Demo/Tests/README.md) 与 [真机验证记录](Demo/Tests/DEVICE-VALIDATION.md)。夹具随仓库提供，不依赖公网视频可用性；生成脚本需 ffmpeg，日常测试不需要。
 
@@ -240,3 +264,5 @@ pod lib lint VideoPlayer.podspec --platforms=ios
 ```
 
 快速校验检查声明与文件配置，不替代编译。完整 lint 会按 podspec 的 iOS 12 部署目标构建；请通过 `DEVELOPER_DIR` 选择支持 iOS 12 的 Xcode。Xcode 27 下可将 lint 生成的临时验证工程以 `IPHONEOS_DEPLOYMENT_TARGET=15.0` 覆盖构建来检查当前 SDK 的集成，但这不能作为 iOS 12 兼容性验证，也不应为通过 lint 在 podspec 中强制覆盖宿主构建设置。
+
+2026-10-29 Castbox 迁移修改的当前源码已完成 iPhone 16e / iOS 27.0.1 真机完整回归 **105 通过、0 失败、0 跳过**，约 201 秒（含两分钟实际播放）。最小修改、公开接口、回归证据及未验证项见 [迁移验证报告](Demo/Tests/Validation/2026-10-29-castbox-sdk.md)。

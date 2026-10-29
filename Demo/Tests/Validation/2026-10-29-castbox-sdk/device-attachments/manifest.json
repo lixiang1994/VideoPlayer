@@ -1,0 +1,83 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "5D1E808F-032A-4914-9321-025234E67046.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_EF391C0B-AB62-47CD-9E60-0B09DCB6F1F2.txt",
+        "timestamp" : 1793260854.129
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "5890AF6D-7210-4C09-81B8-ACA26085EB7C.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_2FE19072-FB5A-4C08-82BE-DAE0F9634A79.txt",
+        "timestamp" : 1793260852.333
+      }
+    ],
+    "testIdentifier" : "DemoIntegrationTests/testDiagnosticsPreservesNavigationAndStopsOnReturn()",
+    "testIdentifierURL" : "test://com.apple.xcode/Demo/DemoTests/DemoIntegrationTests/testDiagnosticsPreservesNavigationAndStopsOnReturn"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "6DE618E7-0C26-420A-9543-D279E0CF4767.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_1F5207FC-795F-4576-B2C6-65D6C69B7A0B.txt",
+        "timestamp" : 1793260862.285
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "15BB74DF-CC57-4C1A-96FD-B1068351A9D1.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_F8DA5172-87E4-4943-A9CF-0C07AB62BE55.txt",
+        "timestamp" : 1793260861.773
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "282AB5DE-62D6-425C-A026-F2D81B6E3052.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_8CD3680C-D22E-4463-A9D7-CEDF4605BDB6.txt",
+        "timestamp" : 1793260860.432
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "1E898260-5E9A-481D-BDD3-3B2ECBADC0CE.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "public.plain-text_0_9D4FFDCC-5A52-4B2E-A249-1C97569FDFC1.txt",
+        "timestamp" : 1793260859.922
+      }
+    ],
+    "testIdentifier" : "DemoIntegrationTests/testPageRateTargetAndMediaClockForLocalAndHTTP()",
+    "testIdentifierURL" : "test://com.apple.xcode/Demo/DemoTests/DemoIntegrationTests/testPageRateTargetAndMediaClockForLocalAndHTTP"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "00008140-000D1962348A801C",
+        "deviceName" : "响李的iPhone",
+        "exportedFileName" : "B7E3AFDE-2FC5-4719-931E-46D7FE89CC71.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "两分钟播放的系统中断与生命周期_0_DCC5C33C-C67E-4FA6-A6ED-36CA17EFA73A.txt",
+        "timestamp" : 1793261031.628
+      }
+    ],
+    "testIdentifier" : "PlaybackTests/testTwoMinuteContinuousPlayback()",
+    "testIdentifierURL" : "test://com.apple.xcode/Demo/DemoTests/PlaybackTests/testTwoMinuteContinuousPlayback"
+  }
+]

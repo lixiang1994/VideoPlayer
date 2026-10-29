@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "20604876ad9e6b54a2ae5be460d474cdf7fd1862",
+  "test_source_counts": {
+    "SeekLifecycleTests": 20,
+    "VideoOutputTests": 15,
+    "PlaybackTests": 34,
+    "SessionAndRemoteTests": 12,
+    "HTTPPlaybackTests": 16,
+    "DemoIntegrationTests": 8
+  },
+  "total_tests": 105,
+  "source_sha256": {
+    "Sources/AV/AVVideoPlayer.swift": "bc72552a0f77cdae1b15060803190dbcfdc054cd49db5618ac28fc86497722f1",
+    "Sources/Core/VideoPlayerConfiguration.swift": "952ebe0d15b495749f0254232414113e034a04782823d3be27790877dec5c5c3",
+    "Demo/Tests/PlaybackTests.swift": "0c0eefa5b5160b3789b84c38f893e0f0d5aad172e476b82b634d99126fa8e4a3",
+    "Demo/Tests/SeekLifecycleTests.swift": "b9ea7c5df0f7ed1021f2d666f38d3589350f4b9ffa5c21d6ee1e8f190c350f30",
+    "Demo/Tests/SessionAndRemoteTests.swift": "7ef0babf5614c969b93d4451ba9d9ea6028521f448455b5efd32e3d2093f541f"
+  },
+  "build_for_testing": "passed",
+  "external_public_api_typecheck": "passed",
+  "pod_lib_lint_original": "failed: Xcode 27.1 supports iOS 15+, podspec declares iOS 12",
+  "pod_lib_lint_temporary_minimum_ios15": "passed with --allow-warnings",
+  "simulator_runtime": "not verified; DTServiceHub failed before XCTest assertions; stopped own processes",
+  "device_runtime": {
+    "result": "passed",
+    "device_id": "00008140-000D1962348A801C",
+    "model": "iPhone 16e",
+    "os": "iOS 27.0.1 (24A446)",
+    "passed": 105,
+    "failed": 0,
+    "skipped": 0,
+    "xcodebuild_exit_code": 0,
+    "test_duration_seconds": 201.065,
+    "xcresult": "/private/tmp/videoplayer-castbox-device-20261029/device-full.xcresult",
+    "source_hashes_match_predevice_review": true,
+    "device_released": true
+  }
+}

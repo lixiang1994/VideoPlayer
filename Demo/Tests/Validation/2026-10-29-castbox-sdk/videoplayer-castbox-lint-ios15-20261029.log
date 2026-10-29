@@ -1,0 +1,17 @@
+
+ -> VideoPlayer -> VideoPlayer (5.3.1)
+    - NOTE  | [VideoPlayer/Core, VideoPlayer/AVPlayer, VideoPlayer/Privacy, and more...] xcodebuild:  note: Using codesigning identity override: -
+    - NOTE  | [VideoPlayer/Core, VideoPlayer/AVPlayer, VideoPlayer/Privacy, and more...] xcodebuild:  note: Building targets in dependency order
+    - NOTE  | [VideoPlayer/Core, VideoPlayer/AVPlayer, VideoPlayer/Privacy, and more...] xcodebuild:  note: Target dependency graph (4 targets)
+    - NOTE  | [iOS] xcodebuild:  2026-10-29 15:33:16.750 appintentsmetadataprocessor[29077:68186633] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+    - NOTE  | [VideoPlayer/Core, VideoPlayer/AVPlayer, VideoPlayer/Privacy, and more...] xcodebuild:  note: Signing static framework with --generate-pre-encrypt-hashes (in target 'Pods-App' from project 'Pods')
+    - NOTE  | [iOS] xcodebuild:  2026-10-29 15:33:23.093 appintentsmetadataprocessor[29207:68187674] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+    - NOTE  | [iOS] [VideoPlayer/Core] xcodebuild:  2026-10-29 15:33:27.461 appintentsmetadataprocessor[29374:68188768] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+    - NOTE  | [iOS] [VideoPlayer/Core] xcodebuild:  2026-10-29 15:33:29.424 appintentsmetadataprocessor[29435:68189240] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+    - NOTE  | [iOS] [VideoPlayer/AVPlayer] xcodebuild:  2026-10-29 15:33:34.016 appintentsmetadataprocessor[29615:68190101] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+    - NOTE  | [iOS] [VideoPlayer/AVPlayer] xcodebuild:  2026-10-29 15:33:37.498 appintentsmetadataprocessor[29689:68190702] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+    - NOTE  | [iOS] [VideoPlayer/Privacy] xcodebuild:  2026-10-29 15:33:43.017 appintentsmetadataprocessor[29874:68191944] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+Pods workspace available at `/private/tmp/videoplayer-castbox-lint-ios15-20261029/App.xcworkspace` for inspection.
+
+VideoPlayer passed validation.

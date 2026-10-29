@@ -1,0 +1,14 @@
+0.000 current=0.000 target=1.0 control=pausing app=0 start
+0.046 current=0.000 target=1.0 control=playing app=0 control=playing
+10.431 current=10.209 target=1.0 control=playing app=0 sample
+20.433 current=20.212 target=1.0 control=playing app=0 sample
+30.435 current=30.214 target=1.0 control=playing app=0 sample
+40.439 current=40.217 target=1.0 control=playing app=0 sample
+50.440 current=50.219 target=1.0 control=playing app=0 sample
+60.443 current=60.222 target=1.0 control=playing app=0 sample
+70.444 current=70.223 target=1.0 control=playing app=0 sample
+80.447 current=80.227 target=1.0 control=playing app=0 sample
+90.448 current=90.228 target=1.0 control=playing app=0 sample
+100.452 current=100.232 target=1.0 control=playing app=0 sample
+110.454 current=110.233 target=1.0 control=playing app=0 sample
+120.457 current=120.237 target=1.0 control=playing app=0 sample
