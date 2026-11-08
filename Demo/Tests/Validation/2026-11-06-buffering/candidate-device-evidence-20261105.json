@@ -1,0 +1,588 @@
+{
+  "date": "2026-11-05",
+  "scope": "isolated VideoPlayer candidate SDK tests, not Castbox integration acceptance",
+  "device": {
+    "model": "iPhone16e",
+    "os": "27.2",
+    "udid": "00008140-000D1962348A801C"
+  },
+  "candidate": {
+    "passed": 108,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 228.453,
+    "xcresult": "/private/tmp/castbox-v2-buffering-sdk-final.xcresult",
+    "tests": [
+      {
+        "name": "DemoIntegrationTests/testDiagnosticsPreservesNavigationAndStopsOnReturn()",
+        "status": "Success",
+        "duration": "3.6749260425567627"
+      },
+      {
+        "name": "DemoIntegrationTests/testNetworkHLSExplainsUnsupportedMix()",
+        "status": "Success",
+        "duration": "0.07211494445800781"
+      },
+      {
+        "name": "DemoIntegrationTests/testNetworkPageMP4MixAndHLSCompatibility()",
+        "status": "Success",
+        "duration": "1.504257082939148"
+      },
+      {
+        "name": "DemoIntegrationTests/testPageCancelsObsoleteMix()",
+        "status": "Success",
+        "duration": "0.7627019882202148"
+      },
+      {
+        "name": "DemoIntegrationTests/testPageMixKeepsItemPositionAndPause()",
+        "status": "Success",
+        "duration": "0.9343910217285156"
+      },
+      {
+        "name": "DemoIntegrationTests/testPageRateTargetAndMediaClockForLocalAndHTTP()",
+        "status": "Success",
+        "duration": "3.8322529792785645"
+      },
+      {
+        "name": "DemoIntegrationTests/testPageReleasedDuringSessionPreparation()",
+        "status": "Success",
+        "duration": "0.5953049659729004"
+      },
+      {
+        "name": "DemoIntegrationTests/testPageSourcesControlsAndScreenshot()",
+        "status": "Success",
+        "duration": "0.8166680335998535"
+      },
+      {
+        "name": "HTTPPlaybackTests/testConnectionDropThenExplicitRetry()",
+        "status": "Success",
+        "duration": "0.7259830236434937"
+      },
+      {
+        "name": "HTTPPlaybackTests/testCorruptMediaFailsAndRecovers()",
+        "status": "Success",
+        "duration": "0.5768510103225708"
+      },
+      {
+        "name": "HTTPPlaybackTests/testDelayedResponseEventuallyPlays()",
+        "status": "Success",
+        "duration": "2.5730350017547607"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHLSVODSeekAndPlay()",
+        "status": "Success",
+        "duration": "0.6582169532775879"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHTTPAuthorizationFailureCanRecover()",
+        "status": "Success",
+        "duration": "0.5476710796356201"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHTTPCompressedAudio()",
+        "status": "Success",
+        "duration": "0.751181960105896"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHTTPFailureThenLocalPlayback()",
+        "status": "Success",
+        "duration": "0.5095340013504028"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHTTPPrepareSeekAndPlay()",
+        "status": "Success",
+        "duration": "0.4913320541381836"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHTTPRedirect()",
+        "status": "Success",
+        "duration": "0.5046789646148682"
+      },
+      {
+        "name": "HTTPPlaybackTests/testHTTPVideoMixKeepsPlaybackAndPause()",
+        "status": "Success",
+        "duration": "1.1585990190505981"
+      },
+      {
+        "name": "HTTPPlaybackTests/testPauseDuringDelayedResponse()",
+        "status": "Success",
+        "duration": "1.801922082901001"
+      },
+      {
+        "name": "HTTPPlaybackTests/testPauseWhileHTTPPreparing()",
+        "status": "Success",
+        "duration": "0.35070502758026123"
+      },
+      {
+        "name": "HTTPPlaybackTests/testPauseWhileStreamStalledPreventsResume()",
+        "status": "Success",
+        "duration": "13.440214037895203"
+      },
+      {
+        "name": "HTTPPlaybackTests/testRepeatedStallNotificationsDoNotInventFailure()",
+        "status": "Success",
+        "duration": "0.7800270318984985"
+      },
+      {
+        "name": "HTTPPlaybackTests/testStopWhileHTTPPreparing()",
+        "status": "Success",
+        "duration": "0.29378795623779297"
+      },
+      {
+        "name": "HTTPPlaybackTests/testStreamRecoveryPreservesSelectedRate()",
+        "status": "Success",
+        "duration": "7.333448052406311"
+      },
+      {
+        "name": "HTTPPlaybackTests/testStreamStallAndRecovery()",
+        "status": "Success",
+        "duration": "10.18876600265503"
+      },
+      {
+        "name": "HTTPPlaybackTests/testSwitchResourceWhileResponseDelayed()",
+        "status": "Success",
+        "duration": "1.3722280263900757"
+      },
+      {
+        "name": "HTTPPlaybackTests/testSwitchWhileStreamStalledRejectsOldNotification()",
+        "status": "Success",
+        "duration": "10.514167070388794"
+      },
+      {
+        "name": "PlaybackTests/testAudioMixResourceCopiesMutableConfiguration()",
+        "status": "Success",
+        "duration": "0.06878793239593506"
+      },
+      {
+        "name": "PlaybackTests/testAudioMixResourceFailureClearsItemAndResource()",
+        "status": "Success",
+        "duration": "0.16005992889404297"
+      },
+      {
+        "name": "PlaybackTests/testAudioMixResourceStopClearsItemAndResource()",
+        "status": "Success",
+        "duration": "0.15592491626739502"
+      },
+      {
+        "name": "PlaybackTests/testAudioMixResourceSwitchReplacesMix()",
+        "status": "Success",
+        "duration": "0.10189998149871826"
+      },
+      {
+        "name": "PlaybackTests/testAudioMixResourceUsesOriginalAssetAndPlays()",
+        "status": "Success",
+        "duration": "0.5569489002227783"
+      },
+      {
+        "name": "PlaybackTests/testAutoplayAdvancesActualTime()",
+        "status": "Success",
+        "duration": "0.5002119541168213"
+      },
+      {
+        "name": "PlaybackTests/testCompressedAudioAndBackwardSeek()",
+        "status": "Success",
+        "duration": "0.1557919979095459"
+      },
+      {
+        "name": "PlaybackTests/testExplicitZeroDirectlyAfterRealEOF()",
+        "status": "Success",
+        "duration": "1.237841010093689"
+      },
+      {
+        "name": "PlaybackTests/testFailureThenPrepareValidResource()",
+        "status": "Success",
+        "duration": "0.4335139989852905"
+      },
+      {
+        "name": "PlaybackTests/testFailureToEndPreservesUnderlyingError()",
+        "status": "Success",
+        "duration": "0.13931000232696533"
+      },
+      {
+        "name": "PlaybackTests/testFinishAndReplay()",
+        "status": "Success",
+        "duration": "1.539342999458313"
+      },
+      {
+        "name": "PlaybackTests/testInvalidAndStoppedSeekCompleteFalse()",
+        "status": "Success",
+        "duration": "0.12783992290496826"
+      },
+      {
+        "name": "PlaybackTests/testInvalidRatePreservesPreviousSetting()",
+        "status": "Success",
+        "duration": "0.05019998550415039"
+      },
+      {
+        "name": "PlaybackTests/testLiveAudioMixUpdatePreservesItemAndPlayback()",
+        "status": "Success",
+        "duration": "0.8454780578613281"
+      },
+      {
+        "name": "PlaybackTests/testLiveAudioMixUpdatePreservesPauseAndCopiesConfiguration()",
+        "status": "Success",
+        "duration": "0.34210705757141113"
+      },
+      {
+        "name": "PlaybackTests/testLiveAudioMixUpdateRejectsStaleAssetAndStoppedResource()",
+        "status": "Success",
+        "duration": "0.15819096565246582"
+      },
+      {
+        "name": "PlaybackTests/testLoopRestartsPlayback()",
+        "status": "Success",
+        "duration": "1.226135015487671"
+      },
+      {
+        "name": "PlaybackTests/testMP3PlaybackAndBackwardSeek()",
+        "status": "Success",
+        "duration": "0.685296893119812"
+      },
+      {
+        "name": "PlaybackTests/testNativeSampleTracksActualPositionRateAndMonotonicTime()",
+        "status": "Success",
+        "duration": "0.5944229364395142"
+      },
+      {
+        "name": "PlaybackTests/testNegativeSeekClampsToStart()",
+        "status": "Success",
+        "duration": "0.14381492137908936"
+      },
+      {
+        "name": "PlaybackTests/testNewResourceClearsSeekCalibration()",
+        "status": "Success",
+        "duration": "0.25868499279022217"
+      },
+      {
+        "name": "PlaybackTests/testPausedSeekAndExplicitZeroAfterRealEOF()",
+        "status": "Success",
+        "duration": "1.7929500341415405"
+      },
+      {
+        "name": "PlaybackTests/testPauseDuringSeek()",
+        "status": "Success",
+        "duration": "0.3152559995651245"
+      },
+      {
+        "name": "PlaybackTests/testPauseRateAndResume()",
+        "status": "Success",
+        "duration": "0.8562750816345215"
+      },
+      {
+        "name": "PlaybackTests/testPrepareWithoutAutoplayRemainsPaused()",
+        "status": "Success",
+        "duration": "0.44419002532958984"
+      },
+      {
+        "name": "PlaybackTests/testRapidSeeksReachLastPosition()",
+        "status": "Success",
+        "duration": "0.21148109436035156"
+      },
+      {
+        "name": "PlaybackTests/testRepeatedEngineDeallocation()",
+        "status": "Success",
+        "duration": "0.7007150650024414"
+      },
+      {
+        "name": "PlaybackTests/testRepeatedResourceSwitchSeekAndStop()",
+        "status": "Success",
+        "duration": "0.7582659721374512"
+      },
+      {
+        "name": "PlaybackTests/testResourcesWithoutMixClearPreviousMix()",
+        "status": "Success",
+        "duration": "0.12964797019958496"
+      },
+      {
+        "name": "PlaybackTests/testSameURLReloadStartsAtZero()",
+        "status": "Success",
+        "duration": "0.24244999885559082"
+      },
+      {
+        "name": "PlaybackTests/testSeekAfterFinishCompletesOnceWhenReplayed()",
+        "status": "Success",
+        "duration": "1.285627007484436"
+      },
+      {
+        "name": "PlaybackTests/testSeekBeforeReady()",
+        "status": "Success",
+        "duration": "0.22752797603607178"
+      },
+      {
+        "name": "PlaybackTests/testTwoMinuteContinuousPlayback()",
+        "status": "Success",
+        "duration": "120.52111303806305"
+      },
+      {
+        "name": "PlaybackTests/testZeroCallbackFrequencyIsSafe()",
+        "status": "Success",
+        "duration": "0.44015300273895264"
+      },
+      {
+        "name": "SeekLifecycleTests/testCancelledCompletionCanPrepareNewResource()",
+        "status": "Success",
+        "duration": "0.20500504970550537"
+      },
+      {
+        "name": "SeekLifecycleTests/testCompletionCanStartAnotherSeek()",
+        "status": "Success",
+        "duration": "0.16588103771209717"
+      },
+      {
+        "name": "SeekLifecycleTests/testCompletionCanSwitchResource()",
+        "status": "Success",
+        "duration": "0.15087902545928955"
+      },
+      {
+        "name": "SeekLifecycleTests/testDelegateCanStopWhenReady()",
+        "status": "Success",
+        "duration": "0.1533719301223755"
+      },
+      {
+        "name": "SeekLifecycleTests/testExplicitZeroSeekDuringPreparation()",
+        "status": "Success",
+        "duration": "0.10877597332000732"
+      },
+      {
+        "name": "SeekLifecycleTests/testFailedSeekDoesNotKeepOptimisticProgress()",
+        "status": "Success",
+        "duration": "0.12713301181793213"
+      },
+      {
+        "name": "SeekLifecycleTests/testLateCancelledSeekCannotOverwriteNewSeek()",
+        "status": "Success",
+        "duration": "0.16514289379119873"
+      },
+      {
+        "name": "SeekLifecycleTests/testNativeSampleHidesPendingTargetAndClearsOnStop()",
+        "status": "Success",
+        "duration": "0.1092519760131836"
+      },
+      {
+        "name": "SeekLifecycleTests/testNotificationsFromOldItemAreIgnored()",
+        "status": "Success",
+        "duration": "0.1865849494934082"
+      },
+      {
+        "name": "SeekLifecycleTests/testOldSeekCompletionAfterResourceSwitchIsIgnored()",
+        "status": "Success",
+        "duration": "0.20704996585845947"
+      },
+      {
+        "name": "SeekLifecycleTests/testPendingSeekCompletesWhenSuperseded()",
+        "status": "Success",
+        "duration": "0.10629606246948242"
+      },
+      {
+        "name": "SeekLifecycleTests/testReentrantFinishDoesNotDeliverStaleReady()",
+        "status": "Success",
+        "duration": "0.09643805027008057"
+      },
+      {
+        "name": "SeekLifecycleTests/testReentrantPauseDoesNotDeliverStaleControl()",
+        "status": "Success",
+        "duration": "0.19945991039276123"
+      },
+      {
+        "name": "SeekLifecycleTests/testReentrantSeekDoesNotDeliverStaleBeganToOtherDelegates()",
+        "status": "Success",
+        "duration": "0.09931600093841553"
+      },
+      {
+        "name": "SeekLifecycleTests/testReentrantSeekDoesNotDeliverStaleEndedToOtherDelegates()",
+        "status": "Success",
+        "duration": "0.12898004055023193"
+      },
+      {
+        "name": "SeekLifecycleTests/testReentrantSeekWhenReopeningFinishedKeepsNewestRequest()",
+        "status": "Success",
+        "duration": "0.10446107387542725"
+      },
+      {
+        "name": "SeekLifecycleTests/testReleaseTearsDownPlayer()",
+        "status": "Success",
+        "duration": "0.11432898044586182"
+      },
+      {
+        "name": "SeekLifecycleTests/testStopCancelsSeekExactlyOnce()",
+        "status": "Success",
+        "duration": "0.1348789930343628"
+      },
+      {
+        "name": "SeekLifecycleTests/testStopFromSeekBeganDoesNotSubmitRequest()",
+        "status": "Success",
+        "duration": "0.09948098659515381"
+      },
+      {
+        "name": "SeekLifecycleTests/testStopWhenSeekReopensFinishedCancelsRequest()",
+        "status": "Success",
+        "duration": "0.09843301773071289"
+      },
+      {
+        "name": "SessionAndRemoteTests/testBackgroundPolicyOverridesStaleSystemPlayingStatus()",
+        "status": "Success",
+        "duration": "0.1008920669555664"
+      },
+      {
+        "name": "SessionAndRemoteTests/testForegroundRestoresPlaybackBlockedByBackgroundPolicy()",
+        "status": "Success",
+        "duration": "0.26445508003234863"
+      },
+      {
+        "name": "SessionAndRemoteTests/testHostCanDisableAudioSessionNotifications()",
+        "status": "Success",
+        "duration": "1.0100599527359009"
+      },
+      {
+        "name": "SessionAndRemoteTests/testInterruptionWithoutResumePermissionStaysPaused()",
+        "status": "Success",
+        "duration": "0.46524500846862793"
+      },
+      {
+        "name": "SessionAndRemoteTests/testInterruptionWithPermissionResumes()",
+        "status": "Success",
+        "duration": "0.2946079969406128"
+      },
+      {
+        "name": "SessionAndRemoteTests/testMediaServicesResetReportsFailure()",
+        "status": "Success",
+        "duration": "0.13556599617004395"
+      },
+      {
+        "name": "SessionAndRemoteTests/testNowPlayingRateTracksPauseAndResume()",
+        "status": "Success",
+        "duration": "0.09661293029785156"
+      },
+      {
+        "name": "SessionAndRemoteTests/testOldDeviceUnavailablePauses()",
+        "status": "Success",
+        "duration": "0.1037360429763794"
+      },
+      {
+        "name": "SessionAndRemoteTests/testPrepareDuringInterruptionWaitsForResume()",
+        "status": "Success",
+        "duration": "0.34447193145751953"
+      },
+      {
+        "name": "SessionAndRemoteTests/testReplacingNowPlayingMetadataPreservesClockAndRate()",
+        "status": "Success",
+        "duration": "0.5149489641189575"
+      },
+      {
+        "name": "SessionAndRemoteTests/testUserPauseDuringInterruptionPreventsResume()",
+        "status": "Success",
+        "duration": "0.3089430332183838"
+      },
+      {
+        "name": "SessionAndRemoteTests/testUserPauseInBackgroundPreventsForegroundResume()",
+        "status": "Success",
+        "duration": "0.20268595218658447"
+      },
+      {
+        "name": "VideoOutputTests/testActualVideoScreenshotAndStop()",
+        "status": "Success",
+        "duration": "0.6947979927062988"
+      },
+      {
+        "name": "VideoOutputTests/testAudioOnlyResourceCannotReturnPreviousVideoFrame()",
+        "status": "Success",
+        "duration": "0.6903330087661743"
+      },
+      {
+        "name": "VideoOutputTests/testHTTPVideoHLSAndSeekProduceFrames()",
+        "status": "Success",
+        "duration": "0.7436239719390869"
+      },
+      {
+        "name": "VideoOutputTests/testHTTPVideoStallAndPauseRecovery()",
+        "status": "Success",
+        "duration": "12.324811935424805"
+      },
+      {
+        "name": "VideoOutputTests/testLayoutAndVideoGravity()",
+        "status": "Success",
+        "duration": "0.08363306522369385"
+      },
+      {
+        "name": "VideoOutputTests/testLocalAudioLevelAndMixAttenuation()",
+        "status": "Success",
+        "duration": "0.10359704494476318"
+      },
+      {
+        "name": "VideoOutputTests/testMOVAndHEVCDecodeActualFrames()",
+        "status": "Success",
+        "duration": "1.352084994316101"
+      },
+      {
+        "name": "VideoOutputTests/testPiPDelayedRestoreAfterCloseReturnsFalse()",
+        "status": "Success",
+        "duration": "0.07431507110595703"
+      },
+      {
+        "name": "VideoOutputTests/testPiPRestoreUsesDelegateResult()",
+        "status": "Success",
+        "duration": "0.05501294136047363"
+      },
+      {
+        "name": "VideoOutputTests/testPiPStopForwardsCorrectEvent()",
+        "status": "Success",
+        "duration": "0.05492901802062988"
+      },
+      {
+        "name": "VideoOutputTests/testPiPWrapperReleases()",
+        "status": "Success",
+        "duration": "0.05780196189880371"
+      },
+      {
+        "name": "VideoOutputTests/testRetainedViewDoesNotKeepPlayerItemAlive()",
+        "status": "Success",
+        "duration": "0.0798419713973999"
+      },
+      {
+        "name": "VideoOutputTests/testRotatedVideoScreenshot()",
+        "status": "Success",
+        "duration": "0.6319930553436279"
+      },
+      {
+        "name": "VideoOutputTests/testStableLayerAndViewAcrossResources()",
+        "status": "Success",
+        "duration": "0.24678409099578857"
+      },
+      {
+        "name": "VideoOutputTests/testVideoWithoutAudioTrack()",
+        "status": "Success",
+        "duration": "0.4097639322280884"
+      }
+    ]
+  },
+  "baseline": {
+    "passed": 0,
+    "failed": 1,
+    "test": "HTTPPlaybackTests.testRepeatedStallNotificationsDoNotInventFailure()",
+    "message": "failed - 仅缓冲卡顿通知不得制造failed状态",
+    "xcresult": "/private/tmp/castbox-v2-buffering-sdk-baseline.xcresult",
+    "scope": "synthetic notification regression for SDK failure policy, not controlled public-network comparison"
+  },
+  "sourceHashes": {
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/AV/AVVideoResourceLoader.swift": "0f6bab667328d2831377d7428413d6818a2bdfb3a3642040b4fecb548a42de49",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/AV/AVVideoPlayerResource.swift": "751b33a8a0ef0e2e3e0b4eb9e159ce99553267de6d180e234638e80169dfe0a4",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/AV/AVVideoPlayer.swift": "167a2131f4919a65b9ec94d35cc2507c0fce33c29e36d4657f7cb4c39dd55fa3",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayerView.swift": "b536e2e0a92a792f60fbc76b63e68f61a9434975eb503c73552cffe770dbb56f",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayerDelegate.swift": "41a1944b8f464350e3e25d65ca9a0758bc198b1f17f3763671adc1873711808c",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayerRemote.swift": "f6b8bdaa97a5ef957380674107a6c2500f4bf0919ba44d65b525f7a45f20cd87",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayer.swift": "acb8a00f05787882a8304dc8a5f7bf3e34d45ee8cf3b62287ed0f13a41a9b9cb",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayerDelegates.swift": "94ca3eb31cd36e3606c4575a70eae589b16b1ce1936292da1f66e5e7ad1f8025",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayerable.swift": "06c90c5203537353d910ba4d7ff8def5bd78716e970eec95898fca7302f06f80",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Sources/Core/VideoPlayerConfiguration.swift": "952ebe0d15b495749f0254232414113e034a04782823d3be27790877dec5c5c3",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/SeekLifecycleTests.swift": "b9ea7c5df0f7ed1021f2d666f38d3589350f4b9ffa5c21d6ee1e8f190c350f30",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/VideoOutputTests.swift": "1a641219880aeca043b93a3e9341b1543df1f68ba98931539064e211aa60a534",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/PlaybackTests.swift": "0c0eefa5b5160b3789b84c38f893e0f0d5aad172e476b82b634d99126fa8e4a3",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/SessionAndRemoteTests.swift": "7ef0babf5614c969b93d4451ba9d9ea6028521f448455b5efd32e3d2093f541f",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/HTTPPlaybackTests.swift": "2b6ad9b967e532977713bbb4c976860b9923f7f080b1edf9e3c35771dea08cca",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/DemoIntegrationTests.swift": "3edd0c3f357172001fea00699008b5a4506090d0094d8d8d693b4736dda1c222",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/PlaybackTestCase.swift": "03c83eac714b014b231bcb8ea69b59213d0b385ea72a57a0b3b29e1c7dd75b33",
+    "/private/tmp/castbox-v2-video-buffering-sdk-20261105/Demo/Tests/Validation/2026-10-29-castbox-sdk/public-api-typecheck.swift": "960c67ef4bd8966bdf7d160018b116e8561d7d50c13966044d0cb1f1f145e353"
+  },
+  "integration": "NOT APPLIED: automatic approval review timed out on original SDK write and chat message; installed Pods unchanged",
+  "normalApp": "Existing normal Release retained and reopened; TED 01:19/09:53 paused observed"
+}

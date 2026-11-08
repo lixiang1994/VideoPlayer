@@ -1,0 +1,128 @@
+{
+  "date": "2026-11-06",
+  "base_commit": "e43c38a03a5b41d54b79c9594f7e4f9a21bcc648",
+  "scope": "review original repository buffering patch against existing isolated candidate device evidence; no device usage in this chat turn",
+  "source_verification": {
+    "Sources/AV/AVVideoResourceLoader.swift": {
+      "expected": "0f6bab667328d2831377d7428413d6818a2bdfb3a3642040b4fecb548a42de49",
+      "actual": "0f6bab667328d2831377d7428413d6818a2bdfb3a3642040b4fecb548a42de49",
+      "match": true
+    },
+    "Sources/AV/AVVideoPlayerResource.swift": {
+      "expected": "751b33a8a0ef0e2e3e0b4eb9e159ce99553267de6d180e234638e80169dfe0a4",
+      "actual": "751b33a8a0ef0e2e3e0b4eb9e159ce99553267de6d180e234638e80169dfe0a4",
+      "match": true
+    },
+    "Sources/AV/AVVideoPlayer.swift": {
+      "expected": "167a2131f4919a65b9ec94d35cc2507c0fce33c29e36d4657f7cb4c39dd55fa3",
+      "actual": "167a2131f4919a65b9ec94d35cc2507c0fce33c29e36d4657f7cb4c39dd55fa3",
+      "match": true
+    },
+    "Sources/Core/VideoPlayerView.swift": {
+      "expected": "b536e2e0a92a792f60fbc76b63e68f61a9434975eb503c73552cffe770dbb56f",
+      "actual": "b536e2e0a92a792f60fbc76b63e68f61a9434975eb503c73552cffe770dbb56f",
+      "match": true
+    },
+    "Sources/Core/VideoPlayerDelegate.swift": {
+      "expected": "41a1944b8f464350e3e25d65ca9a0758bc198b1f17f3763671adc1873711808c",
+      "actual": "41a1944b8f464350e3e25d65ca9a0758bc198b1f17f3763671adc1873711808c",
+      "match": true
+    },
+    "Sources/Core/VideoPlayerRemote.swift": {
+      "expected": "f6b8bdaa97a5ef957380674107a6c2500f4bf0919ba44d65b525f7a45f20cd87",
+      "actual": "f6b8bdaa97a5ef957380674107a6c2500f4bf0919ba44d65b525f7a45f20cd87",
+      "match": true
+    },
+    "Sources/Core/VideoPlayer.swift": {
+      "expected": "acb8a00f05787882a8304dc8a5f7bf3e34d45ee8cf3b62287ed0f13a41a9b9cb",
+      "actual": "acb8a00f05787882a8304dc8a5f7bf3e34d45ee8cf3b62287ed0f13a41a9b9cb",
+      "match": true
+    },
+    "Sources/Core/VideoPlayerDelegates.swift": {
+      "expected": "94ca3eb31cd36e3606c4575a70eae589b16b1ce1936292da1f66e5e7ad1f8025",
+      "actual": "94ca3eb31cd36e3606c4575a70eae589b16b1ce1936292da1f66e5e7ad1f8025",
+      "match": true
+    },
+    "Sources/Core/VideoPlayerable.swift": {
+      "expected": "06c90c5203537353d910ba4d7ff8def5bd78716e970eec95898fca7302f06f80",
+      "actual": "06c90c5203537353d910ba4d7ff8def5bd78716e970eec95898fca7302f06f80",
+      "match": true
+    },
+    "Sources/Core/VideoPlayerConfiguration.swift": {
+      "expected": "952ebe0d15b495749f0254232414113e034a04782823d3be27790877dec5c5c3",
+      "actual": "952ebe0d15b495749f0254232414113e034a04782823d3be27790877dec5c5c3",
+      "match": true
+    },
+    "Demo/Tests/SeekLifecycleTests.swift": {
+      "expected": "b9ea7c5df0f7ed1021f2d666f38d3589350f4b9ffa5c21d6ee1e8f190c350f30",
+      "actual": "b9ea7c5df0f7ed1021f2d666f38d3589350f4b9ffa5c21d6ee1e8f190c350f30",
+      "match": true
+    },
+    "Demo/Tests/VideoOutputTests.swift": {
+      "expected": "1a641219880aeca043b93a3e9341b1543df1f68ba98931539064e211aa60a534",
+      "actual": "1a641219880aeca043b93a3e9341b1543df1f68ba98931539064e211aa60a534",
+      "match": true
+    },
+    "Demo/Tests/PlaybackTests.swift": {
+      "expected": "0c0eefa5b5160b3789b84c38f893e0f0d5aad172e476b82b634d99126fa8e4a3",
+      "actual": "0c0eefa5b5160b3789b84c38f893e0f0d5aad172e476b82b634d99126fa8e4a3",
+      "match": true
+    },
+    "Demo/Tests/SessionAndRemoteTests.swift": {
+      "expected": "7ef0babf5614c969b93d4451ba9d9ea6028521f448455b5efd32e3d2093f541f",
+      "actual": "7ef0babf5614c969b93d4451ba9d9ea6028521f448455b5efd32e3d2093f541f",
+      "match": true
+    },
+    "Demo/Tests/HTTPPlaybackTests.swift": {
+      "expected": "2b6ad9b967e532977713bbb4c976860b9923f7f080b1edf9e3c35771dea08cca",
+      "actual": "2b6ad9b967e532977713bbb4c976860b9923f7f080b1edf9e3c35771dea08cca",
+      "match": true
+    },
+    "Demo/Tests/DemoIntegrationTests.swift": {
+      "expected": "3edd0c3f357172001fea00699008b5a4506090d0094d8d8d693b4736dda1c222",
+      "actual": "3edd0c3f357172001fea00699008b5a4506090d0094d8d8d693b4736dda1c222",
+      "match": true
+    },
+    "Demo/Tests/PlaybackTestCase.swift": {
+      "expected": "03c83eac714b014b231bcb8ea69b59213d0b385ea72a57a0b3b29e1c7dd75b33",
+      "actual": "03c83eac714b014b231bcb8ea69b59213d0b385ea72a57a0b3b29e1c7dd75b33",
+      "match": true
+    },
+    "Demo/Tests/Validation/2026-10-29-castbox-sdk/public-api-typecheck.swift": {
+      "expected": "960c67ef4bd8966bdf7d160018b116e8561d7d50c13966044d0cb1f1f145e353",
+      "actual": "960c67ef4bd8966bdf7d160018b116e8561d7d50c13966044d0cb1f1f145e353",
+      "match": true
+    }
+  },
+  "prior_candidate_device": {
+    "model": "iPhone16e",
+    "os": "27.2",
+    "udid": "00008140-000D1962348A801C"
+  },
+  "prior_candidate_result": {
+    "passed": 108,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 228.453,
+    "xcresult": "/private/tmp/castbox-v2-buffering-sdk-final.xcresult"
+  },
+  "prior_baseline": {
+    "passed": 0,
+    "failed": 1,
+    "test": "HTTPPlaybackTests.testRepeatedStallNotificationsDoNotInventFailure()",
+    "message": "failed - 仅缓冲卡顿通知不得制造failed状态",
+    "xcresult": "/private/tmp/castbox-v2-buffering-sdk-baseline.xcresult",
+    "scope": "synthetic notification regression for SDK failure policy, not controlled public-network comparison"
+  },
+  "current_repository_device_execution": "not rerun; byte identity verified with prior tested candidate",
+  "continuous_marginal_bandwidth": "not controlled AB tested; existing network fixtures use real suspension/recovery",
+  "lint": {
+    "result": "passed",
+    "exit_code": 0,
+    "xcode": "27.2 (27B52)",
+    "command": "XCODE_XCCONFIG_FILE=/private/tmp/videoplayer-buffering-review-20261106/lint-minimum.xcconfig pod lib lint VideoPlayer.podspec --platforms=ios --allow-warnings --no-clean --validation-dir=/private/tmp/videoplayer-buffering-review-20261106/lint",
+    "deployment_target_override": "15.0",
+    "limitation": "does not validate declared iOS12 compatibility; podspec unchanged"
+  },
+  "syntax": "Swift parse / podspec Ruby syntax / git diff --check passed"
+}

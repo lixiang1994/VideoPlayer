@@ -29,6 +29,63 @@ final class HTTPPlaybackTests: PlaybackTestCase {
         XCTAssertEqual(layer.player?.rate, 0)
     }
 
+    /// 合成通知只验证SDK策略：密集卡顿不能替系统生成终止错误。
+    func testRepeatedStallNotificationsDoNotInventFailure() throws {
+        prepare()
+        engine.play()
+        eventually("本地资源实际推进") { self.engine.current > 0.2 }
+        let layer = try XCTUnwrap(engine.view.playerLayer as? AVPlayerLayer)
+        let item = try XCTUnwrap(layer.player?.currentItem)
+        for _ in 0..<20 {
+            NotificationCenter.default.post(name: .AVPlayerItemPlaybackStalled, object: item)
+        }
+        guard case .playing = engine.state else {
+            return XCTFail("仅缓冲卡顿通知不得制造failed状态")
+        }
+        let before = engine.current
+        eventually("卡顿通知后仍可推进") { self.engine.current > before + 0.2 }
+    }
+
+    /// 真实耗尽缓冲后恢复数据，仍保留所选倍速；不以合成通知替代网络恢复。
+    func testStreamRecoveryPreservesSelectedRate() {
+        let player = prepareStreamingMP3()
+        engine.rate = 1.5
+        var stalled = false
+        let token = NotificationCenter.default.addObserver(forName: .AVPlayerItemPlaybackStalled, object: player.currentItem, queue: .main) { _ in stalled = true }
+        defer { NotificationCenter.default.removeObserver(token) }
+        server.suspended = true
+        eventually("先耗尽真实缓冲", timeout: 20) { stalled }
+        server.suspended = false
+        let before = engine.current
+        eventually("供数恢复后保持1.5倍速", timeout: 20) {
+            self.engine.current > before + 0.5 && abs(player.rate - 1.5) < 0.01
+        }
+        XCTAssertEqual(engine.rate, 1.5)
+    }
+
+    /// 卡顿后切资源并暂停，旧item的迟到通知和供数均不能影响新item。
+    func testSwitchWhileStreamStalledRejectsOldNotification() throws {
+        let player = prepareStreamingMP3()
+        let oldItem = try XCTUnwrap(player.currentItem)
+        var stalled = false
+        let token = NotificationCenter.default.addObserver(forName: .AVPlayerItemPlaybackStalled, object: oldItem, queue: .main) { _ in stalled = true }
+        defer { NotificationCenter.default.removeObserver(token) }
+        server.suspended = true
+        waitForStreamBufferExhaustion(player, notification: { stalled })
+        prepare(otherAudio)
+        let newItem = try XCTUnwrap(player.currentItem)
+        XCTAssertFalse(oldItem === newItem)
+        for _ in 0..<20 {
+            NotificationCenter.default.post(name: .AVPlayerItemPlaybackStalled, object: oldItem)
+        }
+        server.suspended = false
+        pump(0.5)
+        XCTAssertTrue(player.currentItem === newItem)
+        XCTAssertEqual(engine.resource?.value, otherAudio)
+        XCTAssertEqual(engine.control, .pausing)
+        XCTAssertEqual(player.rate, 0)
+    }
+
     /// 每个测试使用独立端口，串行结束后主动停止监听。
     private var server: VideoHTTPServer!
     
@@ -131,7 +188,7 @@ final class HTTPPlaybackTests: PlaybackTestCase {
         defer { NotificationCenter.default.removeObserver(token) }
         server.suspended = true
         let bytes = server.sentBytes
-        eventually("停止供数应触发系统卡顿通知，已发送 \(bytes) 字节", timeout: 20) { stalled }
+        waitForStreamBufferExhaustion(player, notification: { stalled })
         XCTAssertEqual(server.sentBytes, bytes)
         server.suspended = false
         let time = engine.current
@@ -145,7 +202,7 @@ final class HTTPPlaybackTests: PlaybackTestCase {
         let token = NotificationCenter.default.addObserver(forName: .AVPlayerItemPlaybackStalled, object: player.currentItem, queue: .main) { _ in stalled = true }
         defer { NotificationCenter.default.removeObserver(token) }
         server.suspended = true
-        eventually("应先触发真实卡顿通知", timeout: 20) { stalled }
+        waitForStreamBufferExhaustion(player, notification: { stalled })
         engine.pause()
         server.suspended = false
         pump(2)
@@ -154,6 +211,23 @@ final class HTTPPlaybackTests: PlaybackTestCase {
         let time = engine.current
         pump(0.5)
         XCTAssertEqual(engine.current, time, accuracy: 0.15)
+    }
+
+    /// 自动缓冲可在 underrun 通知之前等待；必须同时看到系统等待、供数停止和媒体时钟冻结。
+    /// 通知仅作附加证据，不能把系统选择预先等待误报为没有耗尽可播放数据。
+    private func waitForStreamBufferExhaustion(_ player: AVPlayer, notification: () -> Bool, file: StaticString = #filePath, line: UInt = #line) {
+        let bytes = server.sentBytes
+        eventually("停供后系统必须实际进入等待", timeout: 30, file: file, line: line) {
+            player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+        }
+        let position = player.currentTime().seconds
+        pump(0.4)
+        XCTAssertEqual(server.sentBytes, bytes, "等待期间服务器不能继续供数", file: file, line: line)
+        XCTAssertEqual(player.timeControlStatus, .waitingToPlayAtSpecifiedRate, file: file, line: line)
+        XCTAssertEqual(player.currentTime().seconds, position, accuracy: 0.05, "等待必须冻结实际媒体时钟", file: file, line: line)
+        let evidence = XCTAttachment(string: "buffer_wait: notification=\(notification()), status=\(player.timeControlStatus.rawValue), bytes=\(bytes), position=\(position)")
+        evidence.lifetime = .keepAlways
+        add(evidence)
     }
 
     /// 长音频避免在 ready 前已经下载完整文件；只接管服务器供数，不替换系统解码。

@@ -49,6 +49,13 @@ final class DemoIntegrationTests: PlaybackTestCase {
         for url in [audio, server.url("video.mp4")] {
             let page = SimplePlayerViewController.instance(2)
             page.loadViewIfNeeded()
+            let window = UIWindow(frame: UIScreen.main.bounds)
+            if #available(iOS 13.0, *) {
+                window.windowScene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+            }
+            window.rootViewController = page
+            window.makeKeyAndVisible()
+            defer { window.isHidden = true; window.rootViewController = nil }
             page.preparePlayback(url: url)
             let player = try XCTUnwrap(page.player)
             defer { player.stop() }
@@ -73,16 +80,42 @@ final class DemoIntegrationTests: PlaybackTestCase {
                 rates.sendActions(for: .valueChanged)
                 eventually("底层应执行所选倍率") { avPlayer.timeControlStatus == .playing && abs(Double(avPlayer.rate) - target) < 0.01 }
                 // 避开起播边界；采样期间不 seek、不切资源、不允许缓冲或暂停。
-                pump(0.1)
+                let settlingStart = ProcessInfo.processInfo.systemUptime
+                var stableSince: TimeInterval?
+                eventually("切速后原始媒体时钟应在两秒内与 timebase 对齐", timeout: 2) {
+                    guard let base = item.timebase,
+                          avPlayer.timeControlStatus == .playing,
+                          abs(CMTimebaseGetEffectiveRate(base) - target) < 0.01,
+                          abs(avPlayer.currentTime().seconds - CMTimebaseGetTime(base).seconds) < 0.01 else {
+                        stableSince = nil
+                        return false
+                    }
+                    let now = ProcessInfo.processInfo.systemUptime
+                    if stableSince == nil { stableSince = now }
+                    return now - stableSince! >= 0.3
+                }
+                XCTAssertLessThan(ProcessInfo.processInfo.systemUptime - settlingStart, 2)
                 let mediaStart = avPlayer.currentTime().seconds
-                let clockStart = ProcessInfo.processInfo.systemUptime
-                pump(0.4)
-                let measured = (avPlayer.currentTime().seconds - mediaStart) / (ProcessInfo.processInfo.systemUptime - clockStart)
                 XCTAssertEqual(avPlayer.timeControlStatus, .playing)
                 XCTAssertEqual(player.loading, .ended)
                 XCTAssertTrue(avPlayer.currentItem === item)
+                let clockStart = ProcessInfo.processInfo.systemUptime
+                var previousTime = avPlayer.currentTime().seconds
+                var clockTrace: [String] = []
+                while ProcessInfo.processInfo.systemUptime - clockStart < 1.5 {
+                    pump(0.1)
+                    XCTAssertEqual(avPlayer.timeControlStatus, .playing, "倍速测量期间必须持续由AVPlayer报告播放")
+                    XCTAssertTrue(avPlayer.currentItem === item, "倍速测量期间资源身份不能变化")
+                    let currentTime = avPlayer.currentTime().seconds
+                    XCTAssertGreaterThanOrEqual(currentTime, previousTime, "实际媒体时钟不能倒退")
+                    previousTime = currentTime
+                    let base = item.timebase
+                    clockTrace.append("wall=\(ProcessInfo.processInfo.systemUptime - clockStart) player=\(currentTime) item=\(item.currentTime().seconds) base=\(base.map { CMTimebaseGetTime($0).seconds } ?? -1) effective=\(base.map { CMTimebaseGetEffectiveRate($0) } ?? -1)")
+                }
+                let measured = (avPlayer.currentTime().seconds - mediaStart) / (ProcessInfo.processInfo.systemUptime - clockStart)
                 XCTAssertEqual(measured, target, accuracy: 0.25)
-                let measurement = XCTAttachment(string: "\(url.isFileURL ? "local" : "HTTP") MP4: target=\(target), AVPlayer.rate=\(avPlayer.rate), media/uptime=\(measured)")
+                print("VIDEO_CLOCK target=\(target) source=\(url.isFileURL) measured=\(measured) trace=\(clockTrace)")
+                let measurement = XCTAttachment(string: "\(clockTrace)\n\(url.isFileURL ? "local" : "HTTP") MP4: target=\(target), AVPlayer.rate=\(avPlayer.rate), media/uptime=\(measured), thermal=\(ProcessInfo.processInfo.thermalState.rawValue), lowPower=\(ProcessInfo.processInfo.isLowPowerModeEnabled)")
                 measurement.lifetime = .keepAlways
                 add(measurement)
             }

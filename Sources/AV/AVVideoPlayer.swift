@@ -112,8 +112,6 @@ class AVVideoPlayer: NSObject {
     private var isInterrupted: Bool = false
     /// 已完成寻时的实际位置，用于短暂屏蔽底层进度回退；切资源时清空。
     private var currentTimeCalibrator: TimeInterval?
-    /// 仅保留最近一次连续卡顿的记录，避免历史卡顿累计触发失败。
-    private var itemPlaybackStalledRecords: [Double] = []
     /// 播放器实际控制状态的观察令牌。
     private var timeControlStatusObservation: NSKeyValueObservation?
     /// 资源状态保持全程监听，包含 readyToPlay 之后的 failed。
@@ -214,7 +212,6 @@ extension AVVideoPlayer {
         intendedToPlay = false
         // 会话中断属于整个播放器，切资源不能清掉尚未结束的中断。
         currentTimeCalibrator = nil
-        itemPlaybackStalledRecords = []
         #if os(iOS)
         endBackgroundTask()
         #endif
@@ -321,7 +318,17 @@ extension AVVideoPlayer {
         guard case .playing = state, seekRequest == nil else { return }
         let generation = self.generation
         if isPlaybackPermitted {
-            player.playImmediately(atRate: .init(rate))
+            // 保留系统缓冲等待；playImmediately 会绕过等待并在边缘带宽下反复耗尽缓冲。
+            if #available(iOS 16.0, tvOS 16.0, *) {
+                if player.timeControlStatus == .playing {
+                    player.rate = .init(rate)
+                } else {
+                    player.defaultRate = .init(rate)
+                    player.play()
+                }
+            } else {
+                player.rate = .init(rate)
+            }
         } else {
             player.pause()
         }
@@ -354,19 +361,10 @@ extension AVVideoPlayer {
 
 extension AVVideoPlayer {
     
-    /// 连续卡顿重试不改变用户意图；历史中断不计入新的连续窗口。
+    /// 缓冲不足不是资源失败；让AVPlayer等待数据，系统失败仍由item状态/结束错误上报。
     private func itemPlaybackStalled(_ notification: Notification) {
-        guard case .playing = state, intendedToPlay, !isInterrupted else { return }
-        let now = Date().timeIntervalSince1970
-        if let last = itemPlaybackStalledRecords.last, now - last >= 1 {
-            itemPlaybackStalledRecords = []
-        }
-        itemPlaybackStalledRecords.append(now)
-        if itemPlaybackStalledRecords.count >= 11 {
-            error(NSError(domain: "Playback Stalled", code: -111111))
-        } else {
-            applyPlaybackIntent()
-        }
+        guard case .playing = state else { return }
+        updatePlaybackState()
     }
     
     /// 循环通过 seek 恢复；普通结束保留资源，允许再次 play 从头播放。
@@ -498,7 +496,7 @@ extension AVVideoPlayer: VideoPlayerable {
         player.actionAtItemEnd = .pause
         player.volume = .init(volume)
         player.isMuted = isMuted
-        player.automaticallyWaitsToMinimizeStalling = false
+        player.automaticallyWaitsToMinimizeStalling = true
         // 非零 rate 会直接请求播放；准备阶段保持暂停，等观察者建立后再消费自动播放意图。
         player.replaceCurrentItem(with: item)
         addObserver(item: item)
